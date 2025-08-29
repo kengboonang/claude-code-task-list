@@ -1,0 +1,259 @@
+import { useState } from 'react'
+import { Star, Clock, TrendingUp, Calendar, Eye, EyeOff } from 'lucide-react'
+import { TaskList } from './TaskList'
+import { SessionHistory } from './SessionHistory'
+import type { Task, Session } from '../types'
+
+interface TodayViewProps {
+  todayTasks: Task[]
+  activeTodayTasks: Task[]
+  allTasks: Task[]
+  mit: Task | undefined
+  completedMIT: Task | undefined
+  sessions: Session[]
+  onCreateTask: (task: Omit<Task, 'id' | 'created_at' | 'updated_at'>) => void
+  onUpdateTask: (id: string, updates: Partial<Task>) => void
+  onDeleteTask: (id: string) => void
+  onSetMIT: (taskId: string) => void
+  onStartFocus: (taskId: string) => void
+}
+
+export function TodayView({
+  todayTasks,
+  activeTodayTasks,
+  allTasks,
+  mit,
+  completedMIT,
+  sessions,
+  onCreateTask,
+  onUpdateTask,
+  onDeleteTask,
+  onSetMIT,
+  onStartFocus,
+}: TodayViewProps) {
+  const [showMITPrompt, setShowMITPrompt] = useState(!mit && activeTodayTasks.length > 0)
+  const [showCompletedTasks, setShowCompletedTasks] = useState(false)
+
+  const todaysSessions = sessions.filter(session => {
+    const today = new Date().toDateString()
+    return session.start_at.toDateString() === today && session.completed
+  })
+
+  const focusSessions = todaysSessions.filter(session => session.type === 'focus')
+  const totalFocusMinutes = Math.round(focusSessions.reduce((total, session) => total + session.duration, 0) * 10) / 10
+  
+  const completedTasks = todayTasks.filter(task => task.status === 'completed')
+
+  const handleSetMIT = (taskId: string) => {
+    onSetMIT(taskId)
+    setShowMITPrompt(false)
+  }
+
+  const tasksToShow = showCompletedTasks 
+    ? todayTasks 
+    : activeTodayTasks
+
+  return (
+    <div className="max-w-4xl mx-auto p-6 space-y-8">
+      {/* Header */}
+      <div className="text-center">
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">Today</h1>
+        <p className="text-gray-600">
+          {new Date().toLocaleDateString('en-US', { 
+            weekday: 'long', 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
+          })}
+        </p>
+      </div>
+
+      {/* Daily Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="card text-center">
+          <div className="flex items-center justify-center w-12 h-12 bg-focus-100 rounded-lg mx-auto mb-2">
+            <Clock className="w-6 h-6 text-focus-600" />
+          </div>
+          <div className="text-2xl font-bold text-gray-900">{totalFocusMinutes}</div>
+          <div className="text-sm text-gray-600">Focus Minutes</div>
+        </div>
+
+        <div className="card text-center">
+          <div className="flex items-center justify-center w-12 h-12 bg-green-100 rounded-lg mx-auto mb-2">
+            <TrendingUp className="w-6 h-6 text-green-600" />
+          </div>
+          <div className="text-2xl font-bold text-gray-900">{focusSessions.length}</div>
+          <div className="text-sm text-gray-600">Sessions</div>
+        </div>
+
+        <div className="card text-center">
+          <div className="flex items-center justify-center w-12 h-12 bg-blue-100 rounded-lg mx-auto mb-2">
+            <Calendar className="w-6 h-6 text-blue-600" />
+          </div>
+          <div className="text-2xl font-bold text-gray-900">{completedTasks.length}</div>
+          <div className="text-sm text-gray-600">Completed</div>
+        </div>
+
+        <div className="card text-center">
+          <div className="flex items-center justify-center w-12 h-12 bg-yellow-100 rounded-lg mx-auto mb-2">
+            <Star className="w-6 h-6 text-yellow-600" />
+          </div>
+          <div className="text-2xl font-bold text-gray-900">{mit ? '1' : '0'}</div>
+          <div className="text-sm text-gray-600">MIT Set</div>
+        </div>
+      </div>
+
+      {/* MIT Selection Prompt */}
+      {showMITPrompt && activeTodayTasks.length > 0 && (
+        <div className="card bg-yellow-50 border-yellow-200">
+          <div className="flex items-start gap-3">
+            <div className="flex-shrink-0">
+              <Star className="w-6 h-6 text-yellow-600" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-semibold text-yellow-900 mb-2">
+                What's your Most Important Task (MIT) for today?
+              </h3>
+              <p className="text-yellow-800 text-sm mb-4">
+                Choose one task that, if completed, would make your day feel successful.
+              </p>
+              <div className="space-y-2">
+                {activeTodayTasks.slice(0, 5).map(task => (
+                  <button
+                    key={task.id}
+                    onClick={() => handleSetMIT(task.id)}
+                    className="block w-full text-left p-3 bg-white rounded-lg border hover:border-yellow-300 hover:bg-yellow-50 transition-colors"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium text-gray-900">{task.title}</span>
+                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                        task.priority === 'P1' ? 'bg-red-100 text-red-800' :
+                        task.priority === 'P2' ? 'bg-yellow-100 text-yellow-800' :
+                        'bg-green-100 text-green-800'
+                      }`}>
+                        {task.priority}
+                      </span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+              <button
+                onClick={() => setShowMITPrompt(false)}
+                className="mt-3 text-sm text-yellow-700 hover:text-yellow-900"
+              >
+                Skip for now
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MIT Display */}
+      {mit && (
+        <div className="card bg-yellow-50 border-yellow-200">
+          <div className="flex items-center gap-3 mb-4">
+            <Star className="w-6 h-6 text-yellow-600 fill-current" />
+            <h3 className="font-semibold text-yellow-900">Most Important Task</h3>
+          </div>
+          <div className="bg-white rounded-lg p-4 border">
+            <div className="flex items-center justify-between">
+              <div>
+                <h4 className="font-medium text-gray-900 mb-1">{mit.title}</h4>
+                {mit.notes && (
+                  <p className="text-sm text-gray-600">{mit.notes}</p>
+                )}
+              </div>
+              <button
+                onClick={() => onStartFocus(mit.id)}
+                className="btn-focus flex items-center gap-2"
+              >
+                <Clock className="w-4 h-4" />
+                Focus
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Completed MIT Display */}
+      {!mit && completedMIT && (
+        <div className="card bg-green-50 border-green-200">
+          <div className="flex items-center gap-3 mb-4">
+            <Star className="w-6 h-6 text-green-600 fill-current" />
+            <h3 className="font-semibold text-green-900">MIT Completed! 🎉</h3>
+          </div>
+          <div className="bg-white rounded-lg p-4 border">
+            <div className="flex items-center justify-between">
+              <div>
+                <h4 className="font-medium text-gray-900 mb-1 line-through">{completedMIT.title}</h4>
+                {completedMIT.notes && (
+                  <p className="text-sm text-gray-600">{completedMIT.notes}</p>
+                )}
+                <p className="text-sm text-green-600 mt-2">
+                  Great job! Your most important task for today is complete.
+                </p>
+              </div>
+              <div className="text-green-600">
+                <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Task List */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-semibold text-gray-900">Today's Tasks</h2>
+          
+          {completedTasks.length > 0 && (
+            <button
+              onClick={() => setShowCompletedTasks(!showCompletedTasks)}
+              className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              {showCompletedTasks ? (
+                <>
+                  <EyeOff className="w-4 h-4" />
+                  Hide Completed ({completedTasks.length})
+                </>
+              ) : (
+                <>
+                  <Eye className="w-4 h-4" />
+                  Show Completed ({completedTasks.length})
+                </>
+              )}
+            </button>
+          )}
+        </div>
+
+        <TaskList
+          tasks={tasksToShow}
+          onCreateTask={onCreateTask}
+          onUpdateTask={onUpdateTask}
+          onDeleteTask={onDeleteTask}
+          onSetMIT={onSetMIT}
+          onStartFocus={onStartFocus}
+          title=""
+          showQuickAdd={true}
+          showFocusButtons={!showCompletedTasks}
+        />
+      </div>
+
+      {/* Empty State */}
+      {tasksToShow.length === 0 && !showCompletedTasks && (
+        <div className="card text-center py-12">
+          <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">No tasks for today</h3>
+          <p className="text-gray-600 mb-4">
+            Add your first task above to get started with focused work.
+          </p>
+        </div>
+      )}
+
+      {/* Session History */}
+      <SessionHistory sessions={sessions} tasks={allTasks} />
+    </div>
+  )
+}
