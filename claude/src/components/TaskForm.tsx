@@ -29,6 +29,7 @@ export function TaskForm({ onSubmit, onCancel, initialData, isQuickAdd = false }
       tags: tags.split(',').map(tag => tag.trim()).filter(Boolean),
       status: 'todo',
       is_mit: false,
+      subtasks: [],
     })
 
     if (isQuickAdd) {

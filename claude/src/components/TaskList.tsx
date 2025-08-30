@@ -10,6 +10,9 @@ interface TaskListProps {
   onDeleteTask: (id: string) => void
   onSetMIT: (taskId: string) => void
   onStartFocus: (taskId: string) => void
+  onAddSubtask: (taskId: string, title: string) => void
+  onUpdateSubtask: (taskId: string, subtaskId: string, updates: { title?: string, completed?: boolean }) => void
+  onDeleteSubtask: (taskId: string, subtaskId: string) => void
   title?: string
   showQuickAdd?: boolean
   showFocusButtons?: boolean
@@ -22,6 +25,9 @@ export function TaskList({
   onDeleteTask, 
   onSetMIT,
   onStartFocus,
+  onAddSubtask,
+  onUpdateSubtask,
+  onDeleteSubtask,
   title = 'Tasks',
   showQuickAdd = true,
   showFocusButtons = true
@@ -89,6 +95,9 @@ export function TaskList({
               onStartFocus={onStartFocus}
               onEdit={setEditingTask}
               onDelete={onDeleteTask}
+              onAddSubtask={onAddSubtask}
+              onUpdateSubtask={onUpdateSubtask}
+              onDeleteSubtask={onDeleteSubtask}
               showFocusButton={showFocusButtons}
             />
           ))

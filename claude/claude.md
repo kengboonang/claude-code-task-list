@@ -156,3 +156,59 @@ A to‑do app that *guides attention* and *builds momentum* by tightly integrati
 - If offline, I can still capture tasks and run the timer; data syncs later.
 - Keyboard shortcut starts/pauses the timer in Focus Mode on desktop.
 
+---
+
+## Development Progress
+
+### ✅ **Completed Features (MVP)**
+- **Task Management**: Full CRUD operations with priorities (P1-P3) and tags
+- **MIT (Most Important Task)**: Daily selection with guided prompts and celebration UI
+- **Pomodoro Timer**: 25min focus / 5min short break / 15min long break cycles
+- **Task-Timer Binding**: Focus sessions automatically linked to specific tasks
+- **Focus Mode**: Distraction-free single-task view with large timer display
+- **Session Logging**: Complete history of all focus/break sessions with notes
+- **Offline-First Storage**: All data persists locally in browser localStorage
+- **Daily Progress Stats**: Real-time tracking of focus minutes, sessions, completed tasks
+- **Session Notes**: Add notes during/after sessions for reflection and tracking
+- **Subtasks**: Break down complex tasks into manageable sub-items with progress tracking
+- **Adaptive Rest Durations**: Break lengths automatically adjust based on user behavior patterns
+- **Cancel Session**: Safe exit from focus sessions with progress preservation
+
+### 🚧 **In Development**
+- **Snooze/Extend Timer**: 30-120s guardrails for finishing thoughts
+- **Auto-Resume with Countdown**: 10s countdown before starting next session
+- **Continue/Add Subtask Options**: Enhanced session completion flow
+
+### 📋 **Planned Features (v1)**
+- **Daily Review**: Auto-generated summary with rollover prompts
+- **Focus Score**: Planned vs completed sessions ratio calculation
+- **Timeboxing**: Drag tasks to day timeline for scheduling
+- **Backlog & Next Views**: Separate views to keep Today focused
+- **Full-Screen Break Screens**: Enforce stepping away during breaks
+- **Keyboard Shortcuts**: Timer control via keyboard in Focus Mode
+
+### 🎯 **MVP Completion Status: 80%**
+
+**Core MVP Features Completed:**
+- ✅ Task CRUD with MIT selection
+- ✅ Pomodoro timer with configurable cycles
+- ✅ Task-timer binding and session logging
+- ✅ Focus Mode single-task UI
+- ✅ Offline-first core functionality
+- ✅ Basic daily progress tracking
+
+**Remaining MVP Items:**
+- ⏳ Daily Review with auto-generated summary
+- ⏳ Enhanced keyboard shortcuts for timer control
+- ⏳ Auto-resume functionality with countdown
+
+### 📊 **Enhanced Features Beyond MVP**
+The app already includes several features that exceed the original MVP scope:
+- **Subtasks with Progress Tracking**: Break down complex tasks
+- **Adaptive Break Durations**: AI-driven rest optimization
+- **Session Notes & History**: Detailed progress tracking
+- **MIT Celebration States**: Positive reinforcement for achievements
+- **Cancel Session Functionality**: Graceful exit with data preservation
+
+---
+

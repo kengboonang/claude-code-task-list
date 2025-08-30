@@ -1,4 +1,5 @@
 import { CheckCircle, Circle, Star, StarOff, Play, Edit, Trash2, Clock } from 'lucide-react'
+import { SubtaskList } from './SubtaskList'
 import type { Task } from '../types'
 
 interface TaskItemProps {
@@ -8,6 +9,9 @@ interface TaskItemProps {
   onStartFocus: (taskId: string) => void
   onEdit: (task: Task) => void
   onDelete: (id: string) => void
+  onAddSubtask: (taskId: string, title: string) => void
+  onUpdateSubtask: (taskId: string, subtaskId: string, updates: { title?: string, completed?: boolean }) => void
+  onDeleteSubtask: (taskId: string, subtaskId: string) => void
   showFocusButton?: boolean
 }
 
@@ -18,6 +22,9 @@ export function TaskItem({
   onStartFocus, 
   onEdit, 
   onDelete,
+  onAddSubtask,
+  onUpdateSubtask,
+  onDeleteSubtask,
   showFocusButton = true
 }: TaskItemProps) {
   const priorityColors = {
@@ -132,6 +139,16 @@ export function TaskItem({
               </div>
             )}
           </div>
+
+          {/* Subtasks */}
+          <SubtaskList
+            taskId={task.id}
+            subtasks={task.subtasks}
+            onAddSubtask={onAddSubtask}
+            onUpdateSubtask={onUpdateSubtask}
+            onDeleteSubtask={onDeleteSubtask}
+            readonly={task.status === 'completed'}
+          />
         </div>
       </div>
     </div>

@@ -9,6 +9,9 @@ const DEFAULT_PREFS: UserPrefs = {
   auto_resume: true,
   dnd_enabled: false,
   sound_enabled: true,
+  adaptive_breaks: true,
+  min_break_length: 3,
+  max_break_length: 10,
 }
 
 const STORAGE_KEY = 'focus-app-state'
@@ -29,12 +32,19 @@ function loadFromStorage(): Partial<AppState> {
           created_at: new Date(task.created_at),
           updated_at: new Date(task.updated_at),
           due: task.due ? new Date(task.due) : undefined,
+          subtasks: task.subtasks?.map((subtask: any) => ({
+            ...subtask,
+            created_at: new Date(subtask.created_at),
+          })) || [],
         })) || [],
         sessions: parsed.sessions?.map((session: any) => ({
           ...session,
           start_at: new Date(session.start_at),
           end_at: session.end_at ? new Date(session.end_at) : undefined,
         })) || [],
+        // Always start with no active session
+        currentSession: null,
+        isInFocusMode: false,
       }
     }
   } catch (error) {
@@ -77,6 +87,7 @@ export function useAppStore() {
     const task: Task = {
       ...taskData,
       id: generateId(),
+      subtasks: taskData.subtasks || [],
       created_at: new Date(),
       updated_at: new Date(),
     }
@@ -118,14 +129,32 @@ export function useAppStore() {
     }))
   }, [updateState])
 
-  const startSession = useCallback((type: SessionType, taskId?: string) => {
+  const startSession = useCallback((type: SessionType, taskId?: string, customDuration?: number) => {
+    const getPlannedDuration = () => {
+      if (customDuration) return customDuration
+      
+      switch (type) {
+        case 'focus':
+          return state.userPrefs.pomo_length
+        case 'short_break':
+          return state.userPrefs.short_break_length
+        case 'long_break':
+          return state.userPrefs.long_break_length
+        default:
+          return 25
+      }
+    }
+
     const session: Session = {
       id: generateId(),
       task_id: taskId,
       start_at: new Date(),
       duration: 0,
+      planned_duration: getPlannedDuration(),
       type,
       completed: false,
+      completed_early: false,
+      extended: false,
     }
 
     updateState(prev => ({
@@ -137,17 +166,19 @@ export function useAppStore() {
     }))
 
     return session
-  }, [updateState])
+  }, [updateState, state.userPrefs.pomo_length, state.userPrefs.short_break_length, state.userPrefs.long_break_length])
 
-  const completeSession = useCallback((notes?: string) => {
+  const completeSession = useCallback((notes?: string, wasExtended?: boolean) => {
     updateState(prev => {
       if (!prev.currentSession) return prev
 
       const endTime = new Date()
       const durationMs = endTime.getTime() - prev.currentSession.start_at.getTime()
-      const durationMinutes = Math.round(durationMs / 1000 / 60 * 10) / 10 // Round to 1 decimal place
-      const duration = Math.max(0.1, durationMinutes) // Minimum 0.1 minutes (6 seconds)
+      const durationMinutes = Math.round(durationMs / 1000 / 60 * 10) / 10
+      const duration = Math.max(0.1, durationMinutes)
       
+      const plannedDurationMinutes = prev.currentSession.planned_duration
+      const completedEarly = duration < (plannedDurationMinutes * 0.8) // 80% threshold
       
       const completedSession = {
         ...prev.currentSession,
@@ -155,6 +186,8 @@ export function useAppStore() {
         duration,
         notes,
         completed: true,
+        completed_early: completedEarly,
+        extended: wasExtended || false,
       }
 
       return {
@@ -192,6 +225,121 @@ export function useAppStore() {
     return state.tasks.find(task => task.is_mit && task.status === 'completed')
   }, [state.tasks])
 
+  const addSubtask = useCallback((taskId: string, subtaskTitle: string) => {
+    const subtask = {
+      id: generateId(),
+      title: subtaskTitle.trim(),
+      completed: false,
+      created_at: new Date(),
+    }
+
+    updateState(prev => ({
+      ...prev,
+      tasks: prev.tasks.map(task => 
+        task.id === taskId
+          ? { ...task, subtasks: [...task.subtasks, subtask], updated_at: new Date() }
+          : task
+      )
+    }))
+
+    return subtask
+  }, [updateState])
+
+  const updateSubtask = useCallback((taskId: string, subtaskId: string, updates: { title?: string, completed?: boolean }) => {
+    updateState(prev => ({
+      ...prev,
+      tasks: prev.tasks.map(task => 
+        task.id === taskId
+          ? {
+              ...task,
+              subtasks: task.subtasks.map(subtask =>
+                subtask.id === subtaskId
+                  ? { ...subtask, ...updates }
+                  : subtask
+              ),
+              updated_at: new Date()
+            }
+          : task
+      )
+    }))
+  }, [updateState])
+
+  const deleteSubtask = useCallback((taskId: string, subtaskId: string) => {
+    updateState(prev => ({
+      ...prev,
+      tasks: prev.tasks.map(task => 
+        task.id === taskId
+          ? {
+              ...task,
+              subtasks: task.subtasks.filter(subtask => subtask.id !== subtaskId),
+              updated_at: new Date()
+            }
+          : task
+      )
+    }))
+  }, [updateState])
+
+  const calculateAdaptiveBreakDuration = useCallback((breakType: 'short_break' | 'long_break') => {
+    if (!state.userPrefs.adaptive_breaks) {
+      return breakType === 'short_break' 
+        ? state.userPrefs.short_break_length 
+        : state.userPrefs.long_break_length
+    }
+
+    // Get recent focus sessions from today
+    const today = new Date().toDateString()
+    const recentFocusSessions = state.sessions
+      .filter(session => 
+        session.type === 'focus' && 
+        session.completed &&
+        session.start_at.toDateString() === today
+      )
+      .slice(-3) // Last 3 focus sessions
+
+    if (recentFocusSessions.length === 0) {
+      return breakType === 'short_break' 
+        ? state.userPrefs.short_break_length 
+        : state.userPrefs.long_break_length
+    }
+
+    // Calculate adjustment based on recent session patterns
+    const avgCompletionRate = recentFocusSessions.reduce((acc, session) => {
+      return acc + (session.duration / session.planned_duration)
+    }, 0) / recentFocusSessions.length
+
+    const earlyCompletions = recentFocusSessions.filter(s => s.completed_early).length
+    const extensions = recentFocusSessions.filter(s => s.extended).length
+
+    let adjustment = 0
+    
+    // If completing early frequently, reduce break time
+    if (earlyCompletions >= 2) {
+      adjustment -= 1
+    }
+    
+    // If extending frequently, increase break time
+    if (extensions >= 2) {
+      adjustment += 2
+    }
+    
+    // If consistently completing full sessions, maintain normal breaks
+    if (avgCompletionRate >= 0.9 && earlyCompletions === 0 && extensions === 0) {
+      adjustment = 0
+    }
+
+    const baseDuration = breakType === 'short_break' 
+      ? state.userPrefs.short_break_length 
+      : state.userPrefs.long_break_length
+
+    const adaptedDuration = baseDuration + adjustment
+
+    // Clamp between min and max
+    return Math.max(
+      state.userPrefs.min_break_length,
+      Math.min(state.userPrefs.max_break_length, adaptedDuration)
+    )
+  }, [state.sessions, state.userPrefs])
+
   return {
     ...state,
     createTask,
@@ -204,6 +352,10 @@ export function useAppStore() {
     getActiveTodayTasks,
     getMIT,
     getCompletedMIT,
+    addSubtask,
+    updateSubtask,
+    deleteSubtask,
+    calculateAdaptiveBreakDuration,
     updatePrefs: (prefs: Partial<UserPrefs>) => 
       updateState({ userPrefs: { ...state.userPrefs, ...prefs } }),
   }

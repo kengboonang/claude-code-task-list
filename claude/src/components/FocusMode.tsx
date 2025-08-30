@@ -1,5 +1,7 @@
-import { X, CheckCircle, MoreHorizontal } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { X, CheckCircle, MoreHorizontal, StopCircle } from 'lucide-react'
 import { PomodoroTimer } from './PomodoroTimer'
+import { SubtaskList } from './SubtaskList'
 import type { Task, UserPrefs, SessionType } from '../types'
 
 interface FocusModeProps {
@@ -10,6 +12,9 @@ interface FocusModeProps {
   onSessionComplete: (notes?: string) => void
   onSessionStart?: () => void
   onTaskComplete?: (taskId: string) => void
+  onAddSubtask?: (taskId: string, title: string) => void
+  onUpdateSubtask?: (taskId: string, subtaskId: string, updates: { title?: string, completed?: boolean }) => void
+  onDeleteSubtask?: (taskId: string, subtaskId: string) => void
 }
 
 export function FocusMode({ 
@@ -19,29 +24,75 @@ export function FocusMode({
   onExitFocus, 
   onSessionComplete,
   onSessionStart,
-  onTaskComplete
+  onTaskComplete,
+  onAddSubtask,
+  onUpdateSubtask,
+  onDeleteSubtask
 }: FocusModeProps) {
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false)
+
   const handleTaskComplete = () => {
     if (task && onTaskComplete) {
       onTaskComplete(task.id)
     }
   }
 
+  const handleCancelSession = () => {
+    setShowCancelConfirm(false)
+    onExitFocus()
+  }
+
+  // Handle keyboard shortcuts
+  useEffect(() => {
+    const handleKeyPress = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        if (showCancelConfirm) {
+          setShowCancelConfirm(false)
+        } else {
+          setShowCancelConfirm(true)
+        }
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyPress)
+    return () => window.removeEventListener('keydown', handleKeyPress)
+  }, [showCancelConfirm])
+
   return (
     <div className="fixed inset-0 bg-gray-900 bg-opacity-95 z-50 flex items-center justify-center p-4">
       <div className="w-full max-w-2xl">
         {/* Header */}
-        <div className="flex justify-between items-center mb-8">
-          <div className="text-white">
-            <h1 className="text-2xl font-bold">Focus Mode</h1>
+        <div className="flex justify-between items-start mb-8">
+          <div className="text-white flex-1">
+            <h1 className="text-2xl font-bold mb-3">Focus Mode</h1>
             {sessionType === 'focus' && (
-              <p className="text-gray-300 mt-1">Stay focused on your current task</p>
+              <div className="flex items-center justify-between">
+                <p className="text-gray-300">Stay focused on your current task</p>
+                <button
+                  onClick={() => setShowCancelConfirm(true)}
+                  className="flex items-center gap-2 px-3 py-1 text-sm text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors ml-4"
+                  title="Cancel session and return to main page"
+                >
+                  <StopCircle className="w-3 h-3" />
+                  Cancel Session
+                </button>
+              </div>
+            )}
+            {sessionType !== 'focus' && (
+              <button
+                onClick={() => setShowCancelConfirm(true)}
+                className="flex items-center gap-2 px-3 py-1 text-sm text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors mt-2"
+                title="Cancel session and return to main page"
+              >
+                <StopCircle className="w-3 h-3" />
+                Cancel Session
+              </button>
             )}
           </div>
           
           <button
             onClick={onExitFocus}
-            className="text-gray-400 hover:text-white p-2 rounded-lg hover:bg-gray-800 transition-colors"
+            className="text-gray-400 hover:text-white p-2 rounded-lg hover:bg-gray-800 transition-colors flex-shrink-0"
             title="Exit focus mode"
           >
             <X className="w-6 h-6" />
@@ -87,6 +138,23 @@ export function FocusMode({
                     </div>
                   )}
                 </div>
+
+                {/* Subtasks */}
+                {onUpdateSubtask && (
+                  <div className="mt-4 pt-4 border-t border-gray-200">
+                    <h3 className="text-sm font-medium text-gray-700 mb-2">
+                      {task.subtasks.length > 0 ? 'Subtasks Progress' : 'Break this task down'}
+                    </h3>
+                    <SubtaskList
+                      taskId={task.id}
+                      subtasks={task.subtasks}
+                      onAddSubtask={onAddSubtask || (() => {})}
+                      onUpdateSubtask={onUpdateSubtask}
+                      onDeleteSubtask={onDeleteSubtask || (() => {})}
+                      readonly={false}
+                    />
+                  </div>
+                )}
               </div>
 
               <div className="flex gap-2 ml-4">
@@ -166,6 +234,33 @@ export function FocusMode({
                 </>
               )}
             </ul>
+          </div>
+        )}
+
+        {/* Cancel Session Confirmation Dialog */}
+        {showCancelConfirm && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 z-60 flex items-center justify-center p-4">
+            <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-xl">
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">Cancel Session?</h3>
+              <p className="text-gray-600 mb-6">
+                Are you sure you want to cancel this session? Your progress will be saved, but the session will be marked as interrupted.
+              </p>
+              
+              <div className="flex gap-3 justify-end">
+                <button
+                  onClick={() => setShowCancelConfirm(false)}
+                  className="px-4 py-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  Continue Session
+                </button>
+                <button
+                  onClick={handleCancelSession}
+                  className="px-4 py-2 bg-red-600 text-white hover:bg-red-700 rounded-lg transition-colors"
+                >
+                  Cancel Session
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>

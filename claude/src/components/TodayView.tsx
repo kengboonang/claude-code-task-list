@@ -16,6 +16,9 @@ interface TodayViewProps {
   onDeleteTask: (id: string) => void
   onSetMIT: (taskId: string) => void
   onStartFocus: (taskId: string) => void
+  onAddSubtask: (taskId: string, title: string) => void
+  onUpdateSubtask: (taskId: string, subtaskId: string, updates: { title?: string, completed?: boolean }) => void
+  onDeleteSubtask: (taskId: string, subtaskId: string) => void
 }
 
 export function TodayView({
@@ -30,6 +33,9 @@ export function TodayView({
   onDeleteTask,
   onSetMIT,
   onStartFocus,
+  onAddSubtask,
+  onUpdateSubtask,
+  onDeleteSubtask,
 }: TodayViewProps) {
   const [showMITPrompt, setShowMITPrompt] = useState(!mit && activeTodayTasks.length > 0)
   const [showCompletedTasks, setShowCompletedTasks] = useState(false)
@@ -235,6 +241,9 @@ export function TodayView({
           onDeleteTask={onDeleteTask}
           onSetMIT={onSetMIT}
           onStartFocus={onStartFocus}
+          onAddSubtask={onAddSubtask}
+          onUpdateSubtask={onUpdateSubtask}
+          onDeleteSubtask={onDeleteSubtask}
           title=""
           showQuickAdd={true}
           showFocusButtons={!showCompletedTasks}

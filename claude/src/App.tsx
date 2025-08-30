@@ -22,6 +22,10 @@ function App() {
     getActiveTodayTasks,
     getMIT,
     getCompletedMIT,
+    addSubtask,
+    updateSubtask,
+    deleteSubtask,
+    calculateAdaptiveBreakDuration,
   } = useAppStore()
 
   const [sessionType, setSessionType] = useState<SessionType>('focus')
@@ -60,9 +64,10 @@ function App() {
       const nextSessionType: SessionType = shouldTakeLongBreak ? 'long_break' : 'short_break'
       
       if (userPrefs.auto_resume) {
-        // Auto-start break session
+        // Auto-start break session with adaptive duration
+        const adaptiveDuration = calculateAdaptiveBreakDuration(nextSessionType)
         setTimeout(() => {
-          startSession(nextSessionType)
+          startSession(nextSessionType, undefined, adaptiveDuration)
           setSessionType(nextSessionType)
         }, 1000)
       } else {
@@ -118,6 +123,9 @@ function App() {
           onExitFocus={handleExitFocus}
           onSessionComplete={handleSessionComplete}
           onTaskComplete={handleTaskComplete}
+          onAddSubtask={addSubtask}
+          onUpdateSubtask={updateSubtask}
+          onDeleteSubtask={deleteSubtask}
         />
       ) : (
         <TodayView
@@ -132,6 +140,9 @@ function App() {
           onDeleteTask={deleteTask}
           onSetMIT={setMIT}
           onStartFocus={handleStartFocus}
+          onAddSubtask={addSubtask}
+          onUpdateSubtask={updateSubtask}
+          onDeleteSubtask={deleteSubtask}
         />
       )}
     </div>
