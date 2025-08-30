@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Star, Clock, TrendingUp, Calendar, Eye, EyeOff } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { Star, Clock, TrendingUp, Calendar, Eye, EyeOff, RotateCcw, Trash2 } from 'lucide-react'
 import { TaskList } from './TaskList'
 import { SessionHistory } from './SessionHistory'
 import type { Task, Session } from '../types'
@@ -19,6 +19,8 @@ interface TodayViewProps {
   onAddSubtask: (taskId: string, title: string) => void
   onUpdateSubtask: (taskId: string, subtaskId: string, updates: { title?: string, completed?: boolean }) => void
   onDeleteSubtask: (taskId: string, subtaskId: string) => void
+  onResetAllData: () => void
+  onResetDailyData: () => void
 }
 
 export function TodayView({
@@ -36,9 +38,13 @@ export function TodayView({
   onAddSubtask,
   onUpdateSubtask,
   onDeleteSubtask,
+  onResetAllData,
+  onResetDailyData,
 }: TodayViewProps) {
   const [showMITPrompt, setShowMITPrompt] = useState(!mit && activeTodayTasks.length > 0)
   const [showCompletedTasks, setShowCompletedTasks] = useState(false)
+  const [showResetMenu, setShowResetMenu] = useState(false)
+  const resetMenuRef = useRef<HTMLDivElement>(null)
 
   const todaysSessions = sessions.filter(session => {
     const today = new Date().toDateString()
@@ -55,23 +61,87 @@ export function TodayView({
     setShowMITPrompt(false)
   }
 
+  // Close reset menu when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (resetMenuRef.current && !resetMenuRef.current.contains(event.target as Node)) {
+        setShowResetMenu(false)
+      }
+    }
+
+    if (showResetMenu) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [showResetMenu])
+
   const tasksToShow = showCompletedTasks 
     ? todayTasks 
     : activeTodayTasks
 
+  const handleResetDaily = () => {
+    if (confirm('This will reset your daily progress (completed tasks become todo, MIT selection cleared). This cannot be undone. Continue?')) {
+      onResetDailyData()
+      setShowResetMenu(false)
+    }
+  }
+
+  const handleResetAll = () => {
+    if (confirm('This will delete ALL tasks, sessions, and progress. This cannot be undone. Are you sure?')) {
+      onResetAllData()
+      setShowResetMenu(false)
+    }
+  }
+
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-8">
       {/* Header */}
-      <div className="text-center">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Today</h1>
-        <p className="text-gray-600">
-          {new Date().toLocaleDateString('en-US', { 
-            weekday: 'long', 
-            year: 'numeric', 
-            month: 'long', 
-            day: 'numeric' 
-          })}
-        </p>
+      <div className="relative">
+        <div className="text-center">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Today</h1>
+          <p className="text-gray-600">
+            {new Date().toLocaleDateString('en-US', { 
+              weekday: 'long', 
+              year: 'numeric', 
+              month: 'long', 
+              day: 'numeric' 
+            })}
+          </p>
+        </div>
+        
+        {/* Reset Menu */}
+        <div className="absolute top-0 right-0">
+          <div className="relative" ref={resetMenuRef}>
+            <button
+              onClick={() => setShowResetMenu(!showResetMenu)}
+              className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+              title="Reset options"
+            >
+              <RotateCcw className="w-5 h-5" />
+            </button>
+            
+            {showResetMenu && (
+              <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
+                <div className="p-2">
+                  <button
+                    onClick={handleResetDaily}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                    Reset Daily Progress
+                  </button>
+                  <button
+                    onClick={handleResetAll}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    Reset All Data
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Daily Stats */}

@@ -26,6 +26,10 @@ A productivity app that combines task management with Pomodoro timer functionali
 - npm or yarn
 
 ### Installation
+0. Navigate to the `claude` folder
+```bash
+cd claude
+```
 
 1. Clone the repository:
 ```bash

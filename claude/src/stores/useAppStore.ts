@@ -15,6 +15,7 @@ const DEFAULT_PREFS: UserPrefs = {
 }
 
 const STORAGE_KEY = 'focus-app-state'
+const LAST_ACTIVITY_KEY = 'focus-app-last-activity'
 
 function generateId(): string {
   return Math.random().toString(36).substr(2, 9)
@@ -56,15 +57,26 @@ function loadFromStorage(): Partial<AppState> {
 function saveToStorage(state: AppState) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
+    localStorage.setItem(LAST_ACTIVITY_KEY, new Date().toDateString())
   } catch (error) {
     console.error('Failed to save to storage:', error)
+  }
+}
+
+function shouldResetForNewDay(): boolean {
+  try {
+    const lastActivity = localStorage.getItem(LAST_ACTIVITY_KEY)
+    const today = new Date().toDateString()
+    return !!(lastActivity && lastActivity !== today)
+  } catch (error) {
+    return false
   }
 }
 
 export function useAppStore() {
   const [state, setState] = useState<AppState>(() => {
     const stored = loadFromStorage()
-    return {
+    let initialState: AppState = {
       tasks: [],
       sessions: [],
       currentSession: null,
@@ -73,6 +85,24 @@ export function useAppStore() {
       currentTaskId: null,
       ...stored,
     }
+
+    // Auto-reset daily data if it's a new day
+    if (shouldResetForNewDay() && initialState.tasks.length > 0) {
+      initialState = {
+        ...initialState,
+        tasks: initialState.tasks.map(task => ({
+          ...task,
+          is_mit: false,
+          status: task.status === 'completed' ? 'todo' : task.status,
+          updated_at: new Date()
+        })),
+        currentSession: null,
+        isInFocusMode: false,
+        currentTaskId: null,
+      }
+    }
+
+    return initialState
   })
 
   const updateState = useCallback((updater: Partial<AppState> | ((prev: AppState) => AppState)) => {
@@ -340,6 +370,35 @@ export function useAppStore() {
     )
   }, [state.sessions, state.userPrefs])
 
+  const resetAllData = useCallback(() => {
+    const freshState: AppState = {
+      tasks: [],
+      sessions: [],
+      currentSession: null,
+      userPrefs: DEFAULT_PREFS,
+      isInFocusMode: false,
+      currentTaskId: null,
+    }
+    
+    setState(freshState)
+    localStorage.removeItem(STORAGE_KEY)
+  }, [])
+
+  const resetDailyData = useCallback(() => {
+    updateState(prev => ({
+      ...prev,
+      tasks: prev.tasks.map(task => ({
+        ...task,
+        is_mit: false,
+        status: task.status === 'completed' ? 'todo' : task.status,
+        updated_at: new Date()
+      })),
+      currentSession: null,
+      isInFocusMode: false,
+      currentTaskId: null,
+    }))
+  }, [updateState])
+
   return {
     ...state,
     createTask,
@@ -358,5 +417,10 @@ export function useAppStore() {
     calculateAdaptiveBreakDuration,
     updatePrefs: (prefs: Partial<UserPrefs>) => 
       updateState({ userPrefs: { ...state.userPrefs, ...prefs } }),
+    resetAllData,
+    resetDailyData,
   }
 }
+
+// Export utility functions for testing
+export { shouldResetForNewDay }

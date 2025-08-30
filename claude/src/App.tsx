@@ -26,6 +26,8 @@ function App() {
     updateSubtask,
     deleteSubtask,
     calculateAdaptiveBreakDuration,
+    resetAllData,
+    resetDailyData,
   } = useAppStore()
 
   const [sessionType, setSessionType] = useState<SessionType>('focus')
@@ -143,6 +145,8 @@ function App() {
           onAddSubtask={addSubtask}
           onUpdateSubtask={updateSubtask}
           onDeleteSubtask={deleteSubtask}
+          onResetAllData={resetAllData}
+          onResetDailyData={resetDailyData}
         />
       )}
     </div>
