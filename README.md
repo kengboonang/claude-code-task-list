@@ -29,7 +29,7 @@ A productivity app that combines task management with Pomodoro timer functionali
 
 1. Clone the repository:
 ```bash
-git clone <repository-url>
+git clone kengboonang/claude-code-task-list
 cd claude
 ```
 
