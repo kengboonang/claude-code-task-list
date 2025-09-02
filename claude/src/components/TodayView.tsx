@@ -16,6 +16,7 @@ interface TodayViewProps {
   onDeleteTask: (id: string) => void
   onSetMIT: (taskId: string) => void
   onStartFocus: (taskId: string) => void
+  onStartQuickFocus: () => void
   onAddSubtask: (taskId: string, title: string) => void
   onUpdateSubtask: (taskId: string, subtaskId: string, updates: { title?: string, completed?: boolean }) => void
   onDeleteSubtask: (taskId: string, subtaskId: string) => void
@@ -35,6 +36,7 @@ export function TodayView({
   onDeleteTask,
   onSetMIT,
   onStartFocus,
+  onStartQuickFocus,
   onAddSubtask,
   onUpdateSubtask,
   onDeleteSubtask,
@@ -176,6 +178,25 @@ export function TodayView({
           </div>
           <div className="text-2xl font-bold text-gray-900">{mit ? '1' : '0'}</div>
           <div className="text-sm text-gray-600">MIT Set</div>
+        </div>
+      </div>
+
+      {/* Quick Focus Button */}
+      <div className="card bg-focus-50 border-focus-200">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="font-semibold text-focus-900 mb-1">Need to focus right now?</h3>
+            <p className="text-focus-700 text-sm">
+              Start a pomodoro session without selecting a specific task. Perfect for general work or planning.
+            </p>
+          </div>
+          <button
+            onClick={onStartQuickFocus}
+            className="btn-focus flex items-center gap-2 ml-4 whitespace-nowrap"
+          >
+            <Clock className="w-4 h-4" />
+            Quick Focus
+          </button>
         </div>
       </div>
 

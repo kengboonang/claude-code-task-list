@@ -177,7 +177,7 @@ export function useAppStore() {
 
     const session: Session = {
       id: generateId(),
-      task_id: taskId,
+      task_id: taskId || undefined, // Allow undefined for taskless sessions
       start_at: new Date(),
       duration: 0,
       planned_duration: getPlannedDuration(),

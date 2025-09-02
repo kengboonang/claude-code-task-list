@@ -100,77 +100,96 @@ export function FocusMode({
         </div>
 
         {/* Current Task Info */}
-        {task && sessionType === 'focus' && (
+        {sessionType === 'focus' && (
           <div className="bg-white rounded-lg p-6 mb-8 shadow-lg">
             <div className="flex items-start justify-between">
               <div className="flex-1">
-                <div className="flex items-center gap-2 mb-2">
-                  <h2 className="text-xl font-semibold text-gray-900">{task.title}</h2>
-                  {task.is_mit && (
-                    <span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs font-medium rounded-full">
-                      MIT
-                    </span>
-                  )}
-                  <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                    task.priority === 'P1' ? 'bg-red-100 text-red-800' :
-                    task.priority === 'P2' ? 'bg-yellow-100 text-yellow-800' :
-                    'bg-green-100 text-green-800'
-                  }`}>
-                    {task.priority}
-                  </span>
-                </div>
-                
-                {task.notes && (
-                  <p className="text-gray-600 mb-3">{task.notes}</p>
-                )}
-
-                <div className="flex items-center gap-4 text-sm text-gray-500">
-                  {task.estimate_pomos && (
-                    <span>Estimated: {task.estimate_pomos} pomodoros</span>
-                  )}
-                  {task.tags.length > 0 && (
-                    <div className="flex gap-1">
-                      {task.tags.map(tag => (
-                        <span key={tag} className="px-2 py-1 bg-gray-100 text-gray-600 rounded-full text-xs">
-                          {tag}
+                {task ? (
+                  <>
+                    <div className="flex items-center gap-2 mb-2">
+                      <h2 className="text-xl font-semibold text-gray-900">{task.title}</h2>
+                      {task.is_mit && (
+                        <span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs font-medium rounded-full">
+                          MIT
                         </span>
-                      ))}
+                      )}
+                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                        task.priority === 'P1' ? 'bg-red-100 text-red-800' :
+                        task.priority === 'P2' ? 'bg-yellow-100 text-yellow-800' :
+                        'bg-green-100 text-green-800'
+                      }`}>
+                        {task.priority}
+                      </span>
                     </div>
-                  )}
-                </div>
+                    
+                    {task.notes && (
+                      <p className="text-gray-600 mb-3">{task.notes}</p>
+                    )}
 
-                {/* Subtasks */}
-                {onUpdateSubtask && (
-                  <div className="mt-4 pt-4 border-t border-gray-200">
-                    <h3 className="text-sm font-medium text-gray-700 mb-2">
-                      {task.subtasks.length > 0 ? 'Subtasks Progress' : 'Break this task down'}
-                    </h3>
-                    <SubtaskList
-                      taskId={task.id}
-                      subtasks={task.subtasks}
-                      onAddSubtask={onAddSubtask || (() => {})}
-                      onUpdateSubtask={onUpdateSubtask}
-                      onDeleteSubtask={onDeleteSubtask || (() => {})}
-                      readonly={false}
-                    />
-                  </div>
+                    <div className="flex items-center gap-4 text-sm text-gray-500">
+                      {task.estimate_pomos && (
+                        <span>Estimated: {task.estimate_pomos} pomodoros</span>
+                      )}
+                      {task.tags.length > 0 && (
+                        <div className="flex gap-1">
+                          {task.tags.map(tag => (
+                            <span key={tag} className="px-2 py-1 bg-gray-100 text-gray-600 rounded-full text-xs">
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Subtasks */}
+                    {onUpdateSubtask && (
+                      <div className="mt-4 pt-4 border-t border-gray-200">
+                        <h3 className="text-sm font-medium text-gray-700 mb-2">
+                          {task.subtasks.length > 0 ? 'Subtasks Progress' : 'Break this task down'}
+                        </h3>
+                        <SubtaskList
+                          taskId={task.id}
+                          subtasks={task.subtasks}
+                          onAddSubtask={onAddSubtask || (() => {})}
+                          onUpdateSubtask={onUpdateSubtask}
+                          onDeleteSubtask={onDeleteSubtask || (() => {})}
+                          readonly={false}
+                        />
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-center gap-2 mb-2">
+                      <h2 className="text-xl font-semibold text-gray-900">Quick Focus Session</h2>
+                      <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full">
+                        General Work
+                      </span>
+                    </div>
+                    
+                    <p className="text-gray-600 mb-3">
+                      Focus on whatever needs your attention right now. Use this time for planning, organizing, or any task that comes to mind.
+                    </p>
+                  </>
                 )}
               </div>
 
-              <div className="flex gap-2 ml-4">
-                <button
-                  onClick={handleTaskComplete}
-                  className="flex items-center gap-2 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-                  title="Mark task as complete"
-                >
-                  <CheckCircle className="w-4 h-4" />
-                  Complete
-                </button>
-                
-                <button className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors">
-                  <MoreHorizontal className="w-4 h-4" />
-                </button>
-              </div>
+              {task && (
+                <div className="flex gap-2 ml-4">
+                  <button
+                    onClick={handleTaskComplete}
+                    className="flex items-center gap-2 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                    title="Mark task as complete"
+                  >
+                    <CheckCircle className="w-4 h-4" />
+                    Complete
+                  </button>
+                  
+                  <button className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors">
+                    <MoreHorizontal className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         )}

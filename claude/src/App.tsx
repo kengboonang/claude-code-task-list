@@ -50,6 +50,11 @@ function App() {
     setSessionType('focus')
   }
 
+  const handleStartQuickFocus = () => {
+    startSession('focus')
+    setSessionType('focus')
+  }
+
   const handleSessionComplete = (notes?: string, completeTask?: boolean) => {
     completeSession(notes)
     
@@ -142,6 +147,7 @@ function App() {
           onDeleteTask={deleteTask}
           onSetMIT={setMIT}
           onStartFocus={handleStartFocus}
+          onStartQuickFocus={handleStartQuickFocus}
           onAddSubtask={addSubtask}
           onUpdateSubtask={updateSubtask}
           onDeleteSubtask={deleteSubtask}

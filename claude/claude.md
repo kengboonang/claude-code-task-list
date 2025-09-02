@@ -165,6 +165,7 @@ A to‑do app that *guides attention* and *builds momentum* by tightly integrati
 - **MIT (Most Important Task)**: Daily selection with guided prompts and celebration UI
 - **Pomodoro Timer**: 25min focus / 5min short break / 15min long break cycles
 - **Task-Timer Binding**: Focus sessions automatically linked to specific tasks
+- **Quick Focus**: Start pomodoro sessions without creating or selecting a task
 - **Focus Mode**: Distraction-free single-task view with large timer display
 - **Session Logging**: Complete history of all focus/break sessions with notes
 - **Offline-First Storage**: All data persists locally in browser localStorage
