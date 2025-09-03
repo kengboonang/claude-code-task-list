@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { FocusMode } from './components/FocusMode'
 import { TodayView } from './components/TodayView'
+import { AutoResumeCountdown } from './components/AutoResumeCountdown'
 import { useAppStore } from './stores/useAppStore'
 import type { SessionType } from './types'
 
@@ -32,6 +33,12 @@ function App() {
 
   const [sessionType, setSessionType] = useState<SessionType>('focus')
   const [completedPomodoros, setCompletedPomodoros] = useState(0)
+  const [showAutoResumeCountdown, setShowAutoResumeCountdown] = useState(false)
+  const [nextSession, setNextSession] = useState<{
+    type: SessionType
+    taskId?: string
+    duration?: number
+  } | null>(null)
 
   const todayTasks = getTodayTasks()
   const mit = getMIT()
@@ -55,12 +62,23 @@ function App() {
     setSessionType('focus')
   }
 
-  const handleSessionComplete = (notes?: string, completeTask?: boolean) => {
+  const handleSessionComplete = (notes?: string, completeTask?: boolean, continueSession?: boolean, newSubtaskTitle?: string) => {
     completeSession(notes)
     
     // Complete the task if requested
     if (completeTask && currentTask) {
       updateTask(currentTask.id, { status: 'completed' })
+    }
+    
+    // Add subtask if requested
+    if (newSubtaskTitle && currentTask) {
+      addSubtask(currentTask.id, newSubtaskTitle)
+    }
+    
+    // Continue with another pomodoro immediately
+    if (continueSession && sessionType === 'focus') {
+      startSession('focus', currentTask?.id)
+      return
     }
     
     if (sessionType === 'focus') {
@@ -71,22 +89,24 @@ function App() {
       const nextSessionType: SessionType = shouldTakeLongBreak ? 'long_break' : 'short_break'
       
       if (userPrefs.auto_resume) {
-        // Auto-start break session with adaptive duration
+        // Show countdown for break session with adaptive duration
         const adaptiveDuration = calculateAdaptiveBreakDuration(nextSessionType)
-        setTimeout(() => {
-          startSession(nextSessionType, undefined, adaptiveDuration)
-          setSessionType(nextSessionType)
-        }, 1000)
+        setNextSession({
+          type: nextSessionType,
+          duration: adaptiveDuration
+        })
+        setShowAutoResumeCountdown(true)
       } else {
         setSessionType(nextSessionType)
       }
     } else {
       // Break completed, ready for next focus session
       if (userPrefs.auto_resume && currentTask) {
-        setTimeout(() => {
-          startSession('focus', currentTask.id)
-          setSessionType('focus')
-        }, 1000)
+        setNextSession({
+          type: 'focus',
+          taskId: currentTask.id
+        })
+        setShowAutoResumeCountdown(true)
       } else {
         setSessionType('focus')
       }
@@ -108,6 +128,23 @@ function App() {
       completeSession('Session interrupted')
     }
     setSessionType('focus')
+  }
+
+  const handleAutoResumeStart = () => {
+    if (nextSession) {
+      startSession(nextSession.type, nextSession.taskId, nextSession.duration)
+      setSessionType(nextSession.type)
+      setShowAutoResumeCountdown(false)
+      setNextSession(null)
+    }
+  }
+
+  const handleAutoResumeCancel = () => {
+    setShowAutoResumeCountdown(false)
+    if (nextSession) {
+      setSessionType(nextSession.type)
+    }
+    setNextSession(null)
   }
 
   // Reset pomodoro counter at start of new day
@@ -153,6 +190,17 @@ function App() {
           onDeleteSubtask={deleteSubtask}
           onResetAllData={resetAllData}
           onResetDailyData={resetDailyData}
+        />
+      )}
+
+      {/* Auto Resume Countdown */}
+      {showAutoResumeCountdown && nextSession && (
+        <AutoResumeCountdown
+          nextSessionType={nextSession.type}
+          countdown={10}
+          onAutoStart={handleAutoResumeStart}
+          onCancel={handleAutoResumeCancel}
+          nextTaskTitle={nextSession.taskId ? tasks.find(t => t.id === nextSession.taskId)?.title : undefined}
         />
       )}
     </div>

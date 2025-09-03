@@ -9,7 +9,7 @@ interface FocusModeProps {
   sessionType: SessionType
   userPrefs: UserPrefs
   onExitFocus: () => void
-  onSessionComplete: (notes?: string) => void
+  onSessionComplete: (notes?: string, completeTask?: boolean, continueSession?: boolean, newSubtaskTitle?: string) => void
   onSessionStart?: () => void
   onTaskComplete?: (taskId: string) => void
   onAddSubtask?: (taskId: string, title: string) => void

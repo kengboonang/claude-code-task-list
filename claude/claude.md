@@ -175,33 +175,31 @@ A to‑do app that *guides attention* and *builds momentum* by tightly integrati
 - **Adaptive Rest Durations**: Break lengths automatically adjust based on user behavior patterns
 - **Cancel Session**: Safe exit from focus sessions with progress preservation
 
-### 🚧 **In Development**
-- **Snooze/Extend Timer**: 30-120s guardrails for finishing thoughts
-- **Auto-Resume with Countdown**: 10s countdown before starting next session
-- **Continue/Add Subtask Options**: Enhanced session completion flow
+### ✅ **Recently Completed**
+- **Snooze/Extend Timer**: 30-120s guardrails for finishing thoughts with smart UI controls
+- **Auto-Resume with Countdown**: 10s visual countdown modal before starting next session
+- **Continue/Add Subtask Options**: Enhanced session completion flow with multiple options
+- **Daily Review**: Comprehensive auto-generated summary with metrics, focus score, and rollover planning
+- **Enhanced Keyboard Shortcuts**: Full timer control via keyboard with visual shortcut reference
 
 ### 📋 **Planned Features (v1)**
-- **Daily Review**: Auto-generated summary with rollover prompts
-- **Focus Score**: Planned vs completed sessions ratio calculation
+- **Focus Score**: Planned vs completed sessions ratio calculation (✅ implemented in Daily Review)
 - **Timeboxing**: Drag tasks to day timeline for scheduling
 - **Backlog & Next Views**: Separate views to keep Today focused
 - **Full-Screen Break Screens**: Enforce stepping away during breaks
-- **Keyboard Shortcuts**: Timer control via keyboard in Focus Mode
 
-### 🎯 **MVP Completion Status: 80%**
+### 🎯 **MVP Completion Status: 100%**
 
-**Core MVP Features Completed:**
+**All Core MVP Features Completed:**
 - ✅ Task CRUD with MIT selection
 - ✅ Pomodoro timer with configurable cycles
 - ✅ Task-timer binding and session logging
 - ✅ Focus Mode single-task UI
 - ✅ Offline-first core functionality
-- ✅ Basic daily progress tracking
-
-**Remaining MVP Items:**
-- ⏳ Daily Review with auto-generated summary
-- ⏳ Enhanced keyboard shortcuts for timer control
-- ⏳ Auto-resume functionality with countdown
+- ✅ Daily progress tracking with comprehensive review
+- ✅ Auto-resume functionality with countdown
+- ✅ Enhanced keyboard shortcuts for timer control
+- ✅ Session completion flow with continue/subtask options
 
 ### 📊 **Enhanced Features Beyond MVP**
 The app already includes several features that exceed the original MVP scope:

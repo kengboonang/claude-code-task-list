@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
-import { Star, Clock, TrendingUp, Calendar, Eye, EyeOff, RotateCcw, Trash2 } from 'lucide-react'
+import { Star, Clock, TrendingUp, Calendar, Eye, EyeOff, RotateCcw, Trash2, BarChart3 } from 'lucide-react'
 import { TaskList } from './TaskList'
 import { SessionHistory } from './SessionHistory'
+import { DailyReview } from './DailyReview'
 import type { Task, Session } from '../types'
 
 interface TodayViewProps {
@@ -46,6 +47,7 @@ export function TodayView({
   const [showMITPrompt, setShowMITPrompt] = useState(!mit && activeTodayTasks.length > 0)
   const [showCompletedTasks, setShowCompletedTasks] = useState(false)
   const [showResetMenu, setShowResetMenu] = useState(false)
+  const [showDailyReview, setShowDailyReview] = useState(false)
   const resetMenuRef = useRef<HTMLDivElement>(null)
 
   const todaysSessions = sessions.filter(session => {
@@ -111,8 +113,16 @@ export function TodayView({
           </p>
         </div>
         
-        {/* Reset Menu */}
-        <div className="absolute top-0 right-0">
+        {/* Header Actions */}
+        <div className="absolute top-0 right-0 flex gap-2">
+          <button
+            onClick={() => setShowDailyReview(true)}
+            className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+            title="Daily Review"
+          >
+            <BarChart3 className="w-5 h-5" />
+          </button>
+          
           <div className="relative" ref={resetMenuRef}>
             <button
               onClick={() => setShowResetMenu(!showResetMenu)}
@@ -354,6 +364,15 @@ export function TodayView({
 
       {/* Session History */}
       <SessionHistory sessions={sessions} tasks={allTasks} />
+
+      {/* Daily Review Modal */}
+      {showDailyReview && (
+        <DailyReview
+          tasks={allTasks}
+          sessions={sessions}
+          onClose={() => setShowDailyReview(false)}
+        />
+      )}
     </div>
   )
 }

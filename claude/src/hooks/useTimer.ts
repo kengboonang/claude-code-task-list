@@ -57,6 +57,13 @@ export function useTimer(initialMinutes: number = 25) {
     setRemainingSeconds(prev => prev + extraSeconds)
   }, [])
 
+  const snooze = useCallback((snoozeSeconds: number) => {
+    // Guardrails: 30-120 seconds
+    const clampedSeconds = Math.max(30, Math.min(120, snoozeSeconds))
+    setRemainingSeconds(prev => prev + clampedSeconds)
+    setTotalSeconds(prev => prev + clampedSeconds)
+  }, [])
+
   const onComplete = useCallback((callback: () => void) => {
     onCompleteRef.current = callback
   }, [])
@@ -102,6 +109,7 @@ export function useTimer(initialMinutes: number = 25) {
     stop,
     reset,
     extend,
+    snooze,
     onComplete,
     progress: totalSeconds > 0 ? (totalSeconds - remainingSeconds) / totalSeconds : 0,
     isCompleted: remainingSeconds === 0 && totalSeconds > 0,
