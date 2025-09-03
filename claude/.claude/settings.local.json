@@ -4,7 +4,14 @@
       "Bash(npm run dev)",
       "Bash(npm run typecheck)",
       "Bash(npm run lint)",
-      "Bash(npm install)"
+      "Bash(npm install)",
+      "Bash(npm uninstall clsx)",
+      "Bash(npm audit)",
+      "Read(/Users/I743938/Documents/GitHub/claude-code-task-list/**)",
+      "Read(/Users/I743938/Documents/GitHub/claude-code-task-list/**)",
+      "Read(/Users/I743938/Documents/GitHub/**)",
+      "Read(/Users/I743938/Documents/GitHub/**)",
+      "Bash(tree -a -I 'node_modules|.git' -L 3)"
     ],
     "deny": [],
     "ask": []

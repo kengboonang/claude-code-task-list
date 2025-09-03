@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
+import type { Theme, ResolvedTheme } from '../types'
 
-export type Theme = 'light' | 'dark' | 'system'
-export type ResolvedTheme = 'light' | 'dark'
+/* eslint-disable react-refresh/only-export-components */
 
 interface ThemeContextType {
   theme: Theme

@@ -181,6 +181,12 @@ A to‑do app that *guides attention* and *builds momentum* by tightly integrati
 - **Continue/Add Subtask Options**: Enhanced session completion flow with multiple options
 - **Daily Review**: Comprehensive auto-generated summary with metrics, focus score, and rollover planning
 - **Enhanced Keyboard Shortcuts**: Full timer control via keyboard with visual shortcut reference
+- **Light/Dark Theme System**: Complete theme support with light, dark, and system modes
+  - Theme toggle component with 3 options (Light ☀️, Dark 🌙, System 💻)
+  - Comprehensive dark mode styling across all components
+  - Focus Mode sessions follow consistent theme colors
+  - Persistent theme preference storage
+  - Automatic system preference detection
 
 ### 📋 **Planned Features (v1)**
 - **Focus Score**: Planned vs completed sessions ratio calculation (✅ implemented in Daily Review)
@@ -208,6 +214,7 @@ The app already includes several features that exceed the original MVP scope:
 - **Session Notes & History**: Detailed progress tracking
 - **MIT Celebration States**: Positive reinforcement for achievements
 - **Cancel Session Functionality**: Graceful exit with data preservation
+- **Complete Theme System**: Light/dark/system mode support with persistent preferences
 
 ---
 
