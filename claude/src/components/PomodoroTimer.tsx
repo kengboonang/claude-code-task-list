@@ -112,22 +112,22 @@ export const PomodoroTimer = forwardRef<PomodoroTimerRef, PomodoroTimerProps>(({
     focus: {
       title: 'Focus Time',
       color: 'focus',
-      bgColor: 'bg-focus-50',
-      textColor: 'text-focus-900',
+      bgColor: 'bg-focus-50 dark:bg-focus-900/20',
+      textColor: 'text-focus-900 dark:text-focus-100',
       buttonColor: 'btn-focus',
     },
     short_break: {
       title: 'Short Break',
       color: 'green',
-      bgColor: 'bg-green-50',
-      textColor: 'text-green-900',
+      bgColor: 'bg-green-50 dark:bg-green-900/20',
+      textColor: 'text-green-900 dark:text-green-100',
       buttonColor: 'bg-green-600 hover:bg-green-700 text-white',
     },
     long_break: {
       title: 'Long Break',
       color: 'blue',
-      bgColor: 'bg-blue-50',
-      textColor: 'text-blue-900',
+      bgColor: 'bg-blue-50 dark:bg-blue-900/20',
+      textColor: 'text-blue-900 dark:text-blue-100',
       buttonColor: 'bg-blue-600 hover:bg-blue-700 text-white',
     },
   }
@@ -188,14 +188,14 @@ export const PomodoroTimer = forwardRef<PomodoroTimerRef, PomodoroTimerProps>(({
 
 
   return (
-    <div className={`${config.bgColor} rounded-xl p-8 shadow-lg max-w-md mx-auto`}>
+    <div className={`${config.bgColor} rounded-xl p-8 shadow-lg max-w-md mx-auto border border-gray-200 dark:border-gray-700`}>
       <div className="text-center">
         <h2 className={`text-2xl font-bold ${config.textColor} mb-2`}>
           {config.title}
         </h2>
         
         {taskTitle && sessionType === 'focus' && (
-          <p className="text-gray-600 mb-4 text-sm">
+          <p className="text-gray-600 dark:text-gray-400 mb-4 text-sm">
             Working on: <span className="font-medium">{taskTitle}</span>
           </p>
         )}
@@ -210,7 +210,7 @@ export const PomodoroTimer = forwardRef<PomodoroTimerRef, PomodoroTimerProps>(({
               fill="none"
               stroke="currentColor"
               strokeWidth="2"
-              className="text-gray-200"
+              className="text-gray-200 dark:text-gray-700"
             />
             <circle
               cx="50"
@@ -231,7 +231,7 @@ export const PomodoroTimer = forwardRef<PomodoroTimerRef, PomodoroTimerProps>(({
               <div className={`text-4xl font-mono font-bold ${config.textColor}`}>
                 {formatTime(timer.minutes, timer.seconds)}
               </div>
-              <div className="text-sm text-gray-500 mt-1">
+              <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                 {timer.isRunning ? 'Running' : timer.isPaused ? 'Paused' : 'Ready'}
               </div>
             </div>
@@ -339,8 +339,8 @@ export const PomodoroTimer = forwardRef<PomodoroTimerRef, PomodoroTimerProps>(({
 
         {/* Snooze Options */}
         {showSnoozeOptions && (timer.isRunning || timer.isPaused) && (
-          <div className="bg-gray-50 rounded-lg p-4 mb-4">
-            <h4 className="text-sm font-medium text-gray-700 mb-3">Quick snooze to finish your thought</h4>
+          <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 mb-4">
+            <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Quick snooze to finish your thought</h4>
             <div className="flex justify-center gap-2">
               <button
                 onClick={() => {
@@ -379,7 +379,7 @@ export const PomodoroTimer = forwardRef<PomodoroTimerRef, PomodoroTimerProps>(({
                 +2m
               </button>
             </div>
-            <p className="text-xs text-gray-500 mt-2 text-center">
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 text-center">
               Use sparingly to maintain your focus rhythm
             </p>
           </div>
@@ -387,19 +387,19 @@ export const PomodoroTimer = forwardRef<PomodoroTimerRef, PomodoroTimerProps>(({
 
         {/* Keyboard Shortcuts */}
         {showKeyboardShortcuts && (
-          <div className="bg-gray-50 rounded-lg p-4 mb-4">
-            <h4 className="text-sm font-medium text-gray-700 mb-3">Keyboard Shortcuts</h4>
+          <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 mb-4">
+            <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Keyboard Shortcuts</h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
               {shortcuts.map(shortcut => (
                 <div key={shortcut.key} className="flex items-center justify-between py-1">
-                  <span className="text-gray-600">{shortcut.description}</span>
-                  <kbd className="px-2 py-1 bg-white border border-gray-300 rounded text-xs font-mono">
+                  <span className="text-gray-600 dark:text-gray-400">{shortcut.description}</span>
+                  <kbd className="px-2 py-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-xs font-mono dark:text-gray-300">
                     {shortcut.key}
                   </kbd>
                 </div>
               ))}
             </div>
-            <p className="text-xs text-gray-500 mt-3">
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-3">
               These shortcuts work when the timer is focused (not when typing in text fields)
             </p>
           </div>
@@ -410,7 +410,7 @@ export const PomodoroTimer = forwardRef<PomodoroTimerRef, PomodoroTimerProps>(({
           <div className="text-left">
             <button
               onClick={() => setShowNotes(!showNotes)}
-              className="text-sm text-gray-600 hover:text-gray-800 mb-2"
+              className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 mb-2"
             >
               {showNotes ? 'Hide' : 'Add'} session notes
             </button>
@@ -420,7 +420,7 @@ export const PomodoroTimer = forwardRef<PomodoroTimerRef, PomodoroTimerProps>(({
                 value={sessionNotes}
                 onChange={(e) => setSessionNotes(e.target.value)}
                 placeholder="How did this session go? Any insights or blockers?"
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 rows={3}
               />
             )}
@@ -429,15 +429,15 @@ export const PomodoroTimer = forwardRef<PomodoroTimerRef, PomodoroTimerProps>(({
 
         {/* Task Completion Option */}
         {(timer.isCompleted || hasStarted || timer.isRunning || timer.isPaused) && sessionType === 'focus' && taskTitle && (
-          <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+          <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
             <label className="flex items-start gap-3 text-sm">
               <input
                 type="checkbox"
                 checked={completeTaskWhenDone}
                 onChange={(e) => setCompleteTaskWhenDone(e.target.checked)}
-                className="mt-0.5 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                className="mt-0.5 rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500 dark:bg-gray-800"
               />
-              <span className="text-gray-700">
+              <span className="text-gray-700 dark:text-gray-300">
                 Mark "{taskTitle}" as completed when I finish this session
               </span>
             </label>
@@ -456,7 +456,7 @@ export const PomodoroTimer = forwardRef<PomodoroTimerRef, PomodoroTimerProps>(({
               </button>
             ) : (
               <div className="space-y-3">
-                <h4 className="text-sm font-medium text-gray-700 mb-3">How do you want to finish?</h4>
+                <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">How do you want to finish?</h4>
                 
                 {/* Quick Complete */}
                 <button
@@ -484,7 +484,7 @@ export const PomodoroTimer = forwardRef<PomodoroTimerRef, PomodoroTimerProps>(({
                       value={newSubtaskTitle}
                       onChange={(e) => setNewSubtaskTitle(e.target.value)}
                       placeholder="Break this down into a subtask..."
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                       onKeyDown={(e) => {
                         if (e.key === 'Enter' && newSubtaskTitle.trim()) {
                           handleAddSubtaskAndComplete()
