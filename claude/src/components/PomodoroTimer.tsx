@@ -134,25 +134,97 @@ export const PomodoroTimer = forwardRef<PomodoroTimerRef, PomodoroTimerProps>(({
 
   const config = sessionTypeConfig[sessionType]
 
+  // Request notification permission on mount
+  useEffect(() => {
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission()
+    }
+  }, [])
+
+  const playCompletionSound = useCallback(() => {
+    if (!userPrefs.sound_enabled) return
+
+    // Try to play a more pleasant completion sound
+    try {
+      // Create a pleasant ding sound using Web Audio API
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
+      
+      // Create oscillator for a pleasant ding
+      const oscillator = audioContext.createOscillator()
+      const gainNode = audioContext.createGain()
+      
+      oscillator.connect(gainNode)
+      gainNode.connect(audioContext.destination)
+      
+      // Set frequency for a pleasant bell-like sound
+      oscillator.frequency.setValueAtTime(800, audioContext.currentTime)
+      oscillator.frequency.exponentialRampToValueAtTime(400, audioContext.currentTime + 0.1)
+      
+      // Set volume envelope
+      gainNode.gain.setValueAtTime(0, audioContext.currentTime)
+      gainNode.gain.linearRampToValueAtTime(0.3, audioContext.currentTime + 0.01)
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.8)
+      
+      oscillator.type = 'sine'
+      oscillator.start(audioContext.currentTime)
+      oscillator.stop(audioContext.currentTime + 0.8)
+      
+      // Cleanup
+      setTimeout(() => {
+        try {
+          audioContext.close()
+        } catch (e) {
+          // Ignore cleanup errors
+        }
+      }, 1000)
+    } catch (error) {
+      // Fallback to simple beep if Web Audio API fails
+      try {
+        const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmAfBjqS2fPNeSsFJXfH8N2QQAoUXrTp66hVFApGn+DyvmAfBjqS2fPNeSsFJXfH8N2QQAoUXrTp66hVFApGn+DyvmAfBjqS2fPNeSsFJXfH8N2QQAoUXrTp66hVFApGn+DyvmAfBjqS2fPNeSsFJXfH8N2QQAoUXrTp66hVFApGn+DyvmAfBjqS2fPNeSsFJXfH8N2QQAoUXrTp66hVFApGn+DyvmAfBjqS2fPNeSsFJXfH8N2QQAoUXrTp66hVFApGn+DyvmAfBjqS2fPNeSsFJXfH8N2QQAoUXrTp66hVFApAA')
+        audio.volume = 0.5
+        audio.play().catch(() => {})
+      } catch (fallbackError) {
+        // If all sound methods fail, silently ignore
+      }
+    }
+  }, [userPrefs.sound_enabled])
+
+  const showCompletionNotification = useCallback(() => {
+    // Show browser notification if permission granted
+    if ('Notification' in window && Notification.permission === 'granted') {
+      const title = sessionType === 'focus' ? '🎉 Focus Session Complete!' : '✨ Break Time Over!'
+      const body = sessionType === 'focus' 
+        ? `Great work! ${taskTitle ? `You worked on "${taskTitle}". ` : ''}Time for a well-deserved break!`
+        : 'Ready to focus again? Your next session awaits!'
+      
+      const notification = new Notification(title, {
+        body,
+        icon: '/favicon.ico',
+        badge: '/favicon.ico',
+        tag: 'pomodoro-session',
+        requireInteraction: false,
+        silent: false
+      })
+
+      // Auto-close notification after 5 seconds
+      setTimeout(() => {
+        notification.close()
+      }, 5000)
+
+      // Handle notification click
+      notification.onclick = () => {
+        window.focus()
+        notification.close()
+      }
+    }
+  }, [sessionType, taskTitle])
+
   useEffect(() => {
     timer.onComplete(() => {
-      if (userPrefs.sound_enabled) {
-        // Play completion sound (browser notification sound)
-        const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmAfBjqS2fPNeSsFJXfH8N2QQAoUXrTp66hVFApGn+DyvmAfBjqS2fPNeSsFJXfH8N2QQAoUXrTp66hVFApGn+DyvmAfBjqS2fPNeSsFJXfH8N2QQAoUXrTp66hVFApGn+DyvmAfBjqS2fPNeSsFJXfH8N2QQAoUXrTp66hVFApGn+DyvmAfBjqS2fPNeSsFJXfH8N2QQAoUXrTp66hVFApGn+DyvmAfBjqS2fPNeSsFJXfH8N2QQAoUXrTp66hVFApGn+DyvmAfBjqS2fPNeSsFJXfH8N2QQAoUXrTp66hVFApAA')
-        audio.play().catch(() => {})
-      }
-      
-      // Show browser notification if permission granted
-      if (Notification.permission === 'granted') {
-        new Notification('Session Complete!', {
-          body: sessionType === 'focus' 
-            ? 'Time for a break!' 
-            : 'Ready to focus again?',
-          icon: '/favicon.ico'
-        })
-      }
+      playCompletionSound()
+      showCompletionNotification()
     })
-  }, [timer, sessionType, userPrefs.sound_enabled])
+  }, [timer, playCompletionSound, showCompletionNotification])
 
   const handleComplete = () => {
     onSessionComplete(sessionNotes || undefined, completeTaskWhenDone)

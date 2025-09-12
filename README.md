@@ -8,6 +8,7 @@ A productivity app that combines task management with the Pomodoro Technique to 
 - **Task Management**: Create, edit, and organize tasks with priorities (P1-P3) and tags
 - **Most Important Task (MIT)**: Daily focus on your most critical task with guided selection and celebration UI
 - **Pomodoro Timer**: 25-minute focus sessions with automatic breaks (5min short, 15min long)
+- **Audio & Visual Notifications**: Pleasant completion sounds and rich browser notifications when sessions end
 - **Focus Mode**: Distraction-free environment for deep work with large timer display
 - **Quick Focus**: Start pomodoro sessions without selecting a specific task for general work
 - **Session Tracking**: Automatic logging of focus time per task with session notes
@@ -29,8 +30,10 @@ A productivity app that combines task management with the Pomodoro Technique to 
 
 ### User Experience
 - **Light/Dark Theme System**: Complete theme support with light, dark, and system modes
-  - Theme toggle with 3 options (Light ☀️, Dark 🌙, System 💻)
+  - Hover popup theme selector showing current mode icon with smooth dropdown
+  - Three theme options (Light ☀️, Dark 🌙, System 💻) accessible on hover
   - Consistent styling across all components including Focus Mode
+  - Optimized input field contrast and visibility in dark mode
   - Persistent theme preference storage
   - Automatic system preference detection
 - **Enhanced Keyboard Shortcuts**: Full timer control via keyboard with visual shortcut reference
@@ -113,7 +116,7 @@ npm run dev
 - **Daily Stats**: View focus minutes, sessions, completed tasks, MIT status
 - **Daily Review**: Comprehensive summary with focus score and planning prompts
 - **Session History**: Detailed timeline of all focus sessions with notes
-- **Theme Toggle**: Switch between light/dark/system modes (top-right corner)
+- **Theme Selector**: Hover over theme icon (top-right corner) to switch between light/dark/system modes
 
 ## 🎯 Focus Workflow
 
@@ -172,9 +175,10 @@ Your data includes:
 - Ensure JavaScript is enabled
 
 **Timer not working**:
-- Check browser notification permissions
+- Check browser notification permissions (click "Allow" when prompted)
 - Ensure tab remains active during sessions
 - Try refreshing the page
+- For sound issues, check browser audio permissions and volume settings
 
 **Tasks not saving**:
 - Check localStorage isn't full
@@ -184,6 +188,10 @@ Your data includes:
 **Theme not switching**:
 - Check if browser supports CSS custom properties
 - Try hard refresh (Ctrl+F5 / Cmd+Shift+R)
+
+**Input text hard to see in dark mode**:
+- This has been fixed - all form inputs now have proper dark mode contrast
+- If issues persist, try refreshing the page or clearing browser cache
 
 ## 🧰 Development
 
