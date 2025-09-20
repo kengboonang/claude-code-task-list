@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { TaskItem } from './TaskItem'
-import { TaskForm } from './TaskForm'
 import type { Task } from '../types'
+import { TaskForm } from './TaskForm'
+import { TaskItem } from './TaskItem'
 
 interface TaskListProps {
   tasks: Task[]
@@ -18,11 +18,11 @@ interface TaskListProps {
   showFocusButtons?: boolean
 }
 
-export function TaskList({ 
-  tasks, 
-  onCreateTask, 
-  onUpdateTask, 
-  onDeleteTask, 
+export function TaskList({
+  tasks,
+  onCreateTask,
+  onUpdateTask,
+  onDeleteTask,
   onSetMIT,
   onStartFocus,
   onAddSubtask,
@@ -37,8 +37,8 @@ export function TaskList({
   const handleToggleComplete = (id: string) => {
     const task = tasks.find(t => t.id === id)
     if (task) {
-      onUpdateTask(id, { 
-        status: task.status === 'completed' ? 'todo' : 'completed' 
+      onUpdateTask(id, {
+        status: task.status === 'completed' ? 'todo' : 'completed'
       })
     }
   }
@@ -72,7 +72,7 @@ export function TaskList({
   return (
     <div className="space-y-4">
       <h2 className="text-xl font-semibold text-gray-900">{title}</h2>
-      
+
       {showQuickAdd && (
         <TaskForm
           onSubmit={onCreateTask}
@@ -98,6 +98,7 @@ export function TaskList({
               onAddSubtask={onAddSubtask}
               onUpdateSubtask={onUpdateSubtask}
               onDeleteSubtask={onDeleteSubtask}
+              onUpdateTask={onUpdateTask}
               showFocusButton={showFocusButtons}
             />
           ))
