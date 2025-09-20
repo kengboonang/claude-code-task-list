@@ -1,10 +1,11 @@
-import { useState, useEffect, useRef } from 'react'
-import { Star, Clock, TrendingUp, Calendar, Eye, EyeOff, RotateCcw, Trash2, BarChart3 } from 'lucide-react'
-import { TaskList } from './TaskList'
-import { SessionHistory } from './SessionHistory'
+import { BarChart3, Calendar, Clock, Eye, EyeOff, RotateCcw, Star, Trash2, TrendingUp } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import type { Session, Task } from '../types'
+import CompletedTasksModal from './CompletedTasksModal'
 import { DailyReview } from './DailyReview'
+import { SessionHistory } from './SessionHistory'
+import { TaskList } from './TaskList'
 import { ThemeToggle } from './ThemeToggle'
-import type { Task, Session } from '../types'
 
 interface TodayViewProps {
   todayTasks: Task[]
@@ -49,6 +50,7 @@ export function TodayView({
   const [showCompletedTasks, setShowCompletedTasks] = useState(false)
   const [showResetMenu, setShowResetMenu] = useState(false)
   const [showDailyReview, setShowDailyReview] = useState(false)
+  const [showCompletedModal, setShowCompletedModal] = useState(false)
   const resetMenuRef = useRef<HTMLDivElement>(null)
 
   const todaysSessions = sessions.filter(session => {
@@ -58,7 +60,7 @@ export function TodayView({
 
   const focusSessions = todaysSessions.filter(session => session.type === 'focus')
   const totalFocusMinutes = Math.round(focusSessions.reduce((total, session) => total + session.duration, 0) * 10) / 10
-  
+
   const completedTasks = todayTasks.filter(task => task.status === 'completed')
 
   const handleSetMIT = (taskId: string) => {
@@ -80,8 +82,8 @@ export function TodayView({
     }
   }, [showResetMenu])
 
-  const tasksToShow = showCompletedTasks 
-    ? todayTasks 
+  const tasksToShow = showCompletedTasks
+    ? todayTasks
     : activeTodayTasks
 
   const handleResetDaily = () => {
@@ -105,19 +107,19 @@ export function TodayView({
         <div className="text-center">
           <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">Today</h1>
           <p className="text-gray-600 dark:text-gray-400">
-            {new Date().toLocaleDateString('en-US', { 
-              weekday: 'long', 
-              year: 'numeric', 
-              month: 'long', 
-              day: 'numeric' 
+            {new Date().toLocaleDateString('en-US', {
+              weekday: 'long',
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric'
             })}
           </p>
         </div>
-        
+
         {/* Header Actions */}
         <div className="absolute top-0 right-0 flex gap-2">
           <ThemeToggle />
-          
+
           <button
             onClick={() => setShowDailyReview(true)}
             className="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
@@ -125,7 +127,7 @@ export function TodayView({
           >
             <BarChart3 className="w-5 h-5" />
           </button>
-          
+
           <div className="relative" ref={resetMenuRef}>
             <button
               onClick={() => setShowResetMenu(!showResetMenu)}
@@ -134,7 +136,7 @@ export function TodayView({
             >
               <RotateCcw className="w-5 h-5" />
             </button>
-            
+
             {showResetMenu && (
               <div className="absolute right-0 top-full mt-2 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-10">
                 <div className="p-2">
@@ -177,7 +179,11 @@ export function TodayView({
           <div className="text-sm text-gray-600 dark:text-gray-400">Sessions</div>
         </div>
 
-        <div className="card text-center">
+        <div
+          className="card text-center cursor-pointer hover:shadow-md transition-shadow"
+          onClick={() => setShowCompletedModal(true)}
+          title="View completed tasks"
+        >
           <div className="flex items-center justify-center w-12 h-12 bg-blue-100 rounded-lg mx-auto mb-2">
             <Calendar className="w-6 h-6 text-blue-600" />
           </div>
@@ -317,7 +323,7 @@ export function TodayView({
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Today's Tasks</h2>
-          
+
           {completedTasks.length > 0 && (
             <button
               onClick={() => setShowCompletedTasks(!showCompletedTasks)}
@@ -367,6 +373,17 @@ export function TodayView({
 
       {/* Session History */}
       <SessionHistory sessions={sessions} tasks={allTasks} />
+
+      {/* Completed Tasks Modal */}
+      {showCompletedModal && (
+        <CompletedTasksModal
+          tasks={completedTasks}
+          sessions={sessions}
+          onMarkIncomplete={(id) => onUpdateTask(id, { status: 'todo' })}
+          onDeleteForever={(id) => onDeleteTask(id)}
+          onClose={() => setShowCompletedModal(false)}
+        />
+      )}
 
       {/* Daily Review Modal */}
       {showDailyReview && (
