@@ -27,6 +27,15 @@ interface TodayViewProps {
   onResetDailyData: () => void
 }
 
+// Store a daily key like "YYYY-MM-DD" in local time
+const getTodayKey = () => {
+  const d = new Date()
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
 export function TodayView({
   todayTasks,
   activeTodayTasks,
@@ -46,7 +55,17 @@ export function TodayView({
   onResetAllData,
   onResetDailyData,
 }: TodayViewProps) {
-  const [showMITPrompt, setShowMITPrompt] = useState(!mit && activeTodayTasks.length > 0)
+  const [showMITPrompt, setShowMITPrompt] = useState(() => {
+    // Respect "Skip for now" for the rest of the day using localStorage
+    try {
+      const skippedDate = localStorage.getItem('mitPromptSkippedDate')
+      const skippedToday = skippedDate === getTodayKey()
+      return !mit && activeTodayTasks.length > 0 && !skippedToday
+    } catch {
+      // If storage is unavailable, fall back to prior behavior
+      return !mit && activeTodayTasks.length > 0
+    }
+  })
   const [showCompletedTasks, setShowCompletedTasks] = useState(false)
   const [showResetMenu, setShowResetMenu] = useState(false)
   const [showDailyReview, setShowDailyReview] = useState(false)
@@ -254,7 +273,12 @@ export function TodayView({
                 ))}
               </div>
               <button
-                onClick={() => setShowMITPrompt(false)}
+                onClick={() => {
+                  try {
+                    localStorage.setItem('mitPromptSkippedDate', getTodayKey())
+                  } catch {}
+                  setShowMITPrompt(false)
+                }}
                 className="mt-3 text-sm text-yellow-700 dark:text-yellow-300 hover:text-yellow-900 dark:hover:text-yellow-100"
               >
                 Skip for now
