@@ -130,7 +130,7 @@ export function useAppStore() {
 
     updateState(prev => ({
       ...prev,
-      tasks: [...prev.tasks, task]
+      tasks: [task, ...prev.tasks]
     }))
 
     return task
@@ -245,6 +245,8 @@ export function useAppStore() {
       if (!a.is_mit && b.is_mit) return 1
       if (a.status === 'completed' && b.status !== 'completed') return 1
       if (a.status !== 'completed' && b.status === 'completed') return -1
+      const recency = b.created_at.getTime() - a.created_at.getTime()
+      if (recency !== 0) return recency
       return a.priority.localeCompare(b.priority)
     })
   }, [state.tasks])
