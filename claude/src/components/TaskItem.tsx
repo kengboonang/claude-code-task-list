@@ -1,4 +1,5 @@
-import { CheckCircle, Circle, Clock, Edit, Play, Star, StarOff, Trash2 } from 'lucide-react'
+import { CheckCircle, Circle, Clock, Edit, GripVertical, Play, Star, StarOff, Trash2 } from 'lucide-react'
+import type { DragEvent as ReactDragEvent } from 'react'
 import type { Task, TaskPriority } from '../types'
 import { SubtaskList } from './SubtaskList'
 
@@ -14,6 +15,8 @@ interface TaskItemProps {
   onDeleteSubtask: (taskId: string, subtaskId: string) => void
   onUpdateTask: (id: string, updates: Partial<Task>) => void
   showFocusButton?: boolean
+  onDragStart?: (taskId: string, e: ReactDragEvent) => void
+  onDragEnd?: (taskId: string, e: ReactDragEvent) => void
 }
 
 export function TaskItem({
@@ -27,7 +30,9 @@ export function TaskItem({
   onUpdateSubtask,
   onDeleteSubtask,
   onUpdateTask,
-  showFocusButton = true
+  showFocusButton = true,
+  onDragStart,
+  onDragEnd
 }: TaskItemProps) {
   const priorityColors = {
     P1: 'border-l-red-500 bg-red-50',
@@ -48,6 +53,17 @@ export function TaskItem({
       ${task.status === 'completed' ? 'opacity-60' : ''}
     `}>
       <div className="flex items-start gap-3">
+        <button
+          className="mt-0.5 text-gray-300 hover:text-gray-500 cursor-grab"
+          title="Drag to reorder"
+          aria-label="Drag to reorder"
+          draggable={!!onDragStart}
+          onDragStart={(e) => onDragStart?.(task.id, e)}
+          onDragEnd={(e) => onDragEnd?.(task.id, e)}
+        >
+          <GripVertical className="w-4 h-4" />
+        </button>
+
         <button
           onClick={() => onToggleComplete(task.id)}
           className="mt-0.5 text-gray-400 hover:text-primary-600"

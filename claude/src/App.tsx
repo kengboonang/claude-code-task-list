@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
+import { AutoResumeCountdown } from './components/AutoResumeCountdown'
 import { FocusMode } from './components/FocusMode'
 import { TodayView } from './components/TodayView'
-import { AutoResumeCountdown } from './components/AutoResumeCountdown'
 import { useAppStore } from './stores/useAppStore'
 import type { SessionType } from './types'
 
@@ -26,6 +26,7 @@ function App() {
     addSubtask,
     updateSubtask,
     deleteSubtask,
+    reorderTasks,
     calculateAdaptiveBreakDuration,
     resetAllData,
     resetDailyData,
@@ -64,30 +65,30 @@ function App() {
 
   const handleSessionComplete = (notes?: string, completeTask?: boolean, continueSession?: boolean, newSubtaskTitle?: string) => {
     completeSession(notes)
-    
+
     // Complete the task if requested
     if (completeTask && currentTask) {
       updateTask(currentTask.id, { status: 'completed' })
     }
-    
+
     // Add subtask if requested
     if (newSubtaskTitle && currentTask) {
       addSubtask(currentTask.id, newSubtaskTitle)
     }
-    
+
     // Continue with another pomodoro immediately
     if (continueSession && sessionType === 'focus') {
       startSession('focus', currentTask?.id)
       return
     }
-    
+
     if (sessionType === 'focus') {
       setCompletedPomodoros(prev => prev + 1)
-      
+
       // Determine next session type
       const shouldTakeLongBreak = (completedPomodoros + 1) % userPrefs.cycles_to_long_break === 0
       const nextSessionType: SessionType = shouldTakeLongBreak ? 'long_break' : 'short_break'
-      
+
       if (userPrefs.auto_resume) {
         // Show countdown for break session with adaptive duration
         const adaptiveDuration = calculateAdaptiveBreakDuration(nextSessionType)
@@ -115,7 +116,7 @@ function App() {
 
   const handleTaskComplete = (taskId: string) => {
     updateTask(taskId, { status: 'completed' })
-    
+
     // If this was the MIT, clear it
     const task = tasks.find(t => t.id === taskId)
     if (task?.is_mit) {
@@ -151,7 +152,7 @@ function App() {
   useEffect(() => {
     const today = new Date().toDateString()
     const lastSession = sessions[sessions.length - 1]
-    
+
     if (!lastSession || lastSession.start_at.toDateString() !== today) {
       setCompletedPomodoros(0)
     }
@@ -190,6 +191,7 @@ function App() {
           onDeleteSubtask={deleteSubtask}
           onResetAllData={resetAllData}
           onResetDailyData={resetDailyData}
+          onReorderTasks={reorderTasks}
         />
       )}
 

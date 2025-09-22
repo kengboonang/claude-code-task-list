@@ -25,6 +25,7 @@ interface TodayViewProps {
   onDeleteSubtask: (taskId: string, subtaskId: string) => void
   onResetAllData: () => void
   onResetDailyData: () => void
+  onReorderTasks: (orderedIds: string[]) => void
 }
 
 // Store a daily key like "YYYY-MM-DD" in local time
@@ -54,6 +55,7 @@ export function TodayView({
   onDeleteSubtask,
   onResetAllData,
   onResetDailyData,
+  onReorderTasks,
 }: TodayViewProps) {
   const [showMITPrompt, setShowMITPrompt] = useState(() => {
     // Respect "Skip for now" for the rest of the day using localStorage
@@ -102,6 +104,18 @@ export function TodayView({
   const filteredTasks = priorityFilter === 'All'
     ? activeTodayTasks
     : activeTodayTasks.filter(task => task.priority === priorityFilter)
+
+  // Reorder within the currently visible (filtered) subset while preserving
+  // the relative positions of non-visible tasks in the full active list.
+  const handleReorderVisible = (orderedIds: string[]) => {
+    const currentOrder = activeTodayTasks.map(t => t.id)
+    const visibleSet = new Set(filteredTasks.map(t => t.id))
+    const subsetQueue = [...orderedIds]
+    const newFullOrder = currentOrder.map(id =>
+      visibleSet.has(id) ? subsetQueue.shift()! : id
+    )
+    onReorderTasks(newFullOrder)
+  }
 
   const handleResetDaily = () => {
     if (confirm('This will reset your daily progress (completed tasks become todo, MIT selection cleared). This cannot be undone. Continue?')) {
@@ -350,6 +364,7 @@ export function TodayView({
               title=""
               showQuickAdd={true}
               showFocusButtons={true}
+              onReorder={handleReorderVisible}
             />
           </div>
 

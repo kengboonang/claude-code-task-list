@@ -241,10 +241,21 @@ export function useAppStore() {
     return state.tasks.filter(task =>
       !task.due || task.due <= new Date()
     ).sort((a, b) => {
-      if (a.is_mit && !b.is_mit) return -1
-      if (!a.is_mit && b.is_mit) return 1
+      // Always push completed tasks to the bottom
       if (a.status === 'completed' && b.status !== 'completed') return 1
       if (a.status !== 'completed' && b.status === 'completed') return -1
+
+      // For active tasks, prefer manual sort order if set
+      const aHasOrder = typeof a.sort_order === 'number'
+      const bHasOrder = typeof b.sort_order === 'number'
+      if (aHasOrder && bHasOrder) return (a.sort_order as number) - (b.sort_order as number)
+      if (aHasOrder && !bHasOrder) return -1
+      if (!aHasOrder && bHasOrder) return 1
+
+      // Fallback to previous rules
+      if (a.is_mit && !b.is_mit) return -1
+      if (!a.is_mit && b.is_mit) return 1
+
       const recency = b.created_at.getTime() - a.created_at.getTime()
       if (recency !== 0) return recency
       return a.priority.localeCompare(b.priority)
@@ -315,6 +326,23 @@ export function useAppStore() {
           : task
       )
     }))
+  }, [updateState])
+
+  const reorderTasks = useCallback((orderedIds: string[]) => {
+    updateState(prev => {
+      const idToOrder = new Map<string, number>()
+      orderedIds.forEach((id, index) => {
+        idToOrder.set(id, index)
+      })
+      return {
+        ...prev,
+        tasks: prev.tasks.map(task =>
+          idToOrder.has(task.id)
+            ? { ...task, sort_order: idToOrder.get(task.id)!, updated_at: new Date() }
+            : task
+        )
+      }
+    })
   }, [updateState])
 
   const calculateAdaptiveBreakDuration = useCallback((breakType: 'short_break' | 'long_break') => {
@@ -422,6 +450,7 @@ export function useAppStore() {
     addSubtask,
     updateSubtask,
     deleteSubtask,
+    reorderTasks,
     calculateAdaptiveBreakDuration,
     updatePrefs: (prefs: Partial<UserPrefs>) =>
       updateState({ userPrefs: { ...state.userPrefs, ...prefs } }),
