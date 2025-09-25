@@ -1,5 +1,5 @@
-import React, { useState } from 'react'
 import { Plus, X } from 'lucide-react'
+import React, { useState } from 'react'
 import type { Task, TaskPriority } from '../types'
 
 interface TaskFormProps {
@@ -12,10 +12,9 @@ interface TaskFormProps {
 export function TaskForm({ onSubmit, onCancel, initialData, isQuickAdd = false }: TaskFormProps) {
   const [title, setTitle] = useState(initialData?.title || '')
   const [notes, setNotes] = useState(initialData?.notes || '')
-  const [priority, setPriority] = useState<TaskPriority>(initialData?.priority || 'P2')
+  const [priority, setPriority] = useState<TaskPriority>(initialData?.priority || (isQuickAdd ? 'P1' : 'P2'))
   const [estimatePomos, setEstimatePomos] = useState(initialData?.estimate_pomos?.toString() || '')
   const [tags, setTags] = useState(initialData?.tags?.join(', ') || '')
-  const [showAdvanced, setShowAdvanced] = useState(!isQuickAdd)
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -37,6 +36,7 @@ export function TaskForm({ onSubmit, onCancel, initialData, isQuickAdd = false }
       setNotes('')
       setEstimatePomos('')
       setTags('')
+      setPriority('P1')
     }
   }
 
@@ -58,15 +58,16 @@ export function TaskForm({ onSubmit, onCancel, initialData, isQuickAdd = false }
         >
           <Plus className="w-4 h-4" />
         </button>
-        {!showAdvanced && (
-          <button
-            type="button"
-            onClick={() => setShowAdvanced(true)}
-            className="btn-secondary text-sm"
-          >
-            More
-          </button>
-        )}
+        <select
+          value={priority}
+          onChange={(e) => setPriority(e.target.value as TaskPriority)}
+          className="px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+          title="Priority"
+        >
+          <option value="P1">P1</option>
+          <option value="P2">P2</option>
+          <option value="P3">P3</option>
+        </select>
       </form>
     )
   }

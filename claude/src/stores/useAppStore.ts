@@ -1,5 +1,5 @@
-import { useState, useCallback } from 'react'
-import type { Task, Session, UserPrefs, AppState, SessionType } from '../types'
+import { useCallback, useState } from 'react'
+import type { AppState, Session, SessionType, Task, UserPrefs } from '../types'
 
 const DEFAULT_PREFS: UserPrefs = {
   pomo_length: 25,
@@ -93,12 +93,18 @@ export function useAppStore() {
         tasks: initialState.tasks.map(task => ({
           ...task,
           is_mit: false,
-          status: task.status === 'completed' ? 'todo' : task.status,
+          // Preserve status on new day; do not reopen completed tasks automatically
           updated_at: new Date()
         })),
         currentSession: null,
         isInFocusMode: false,
         currentTaskId: null,
+      }
+      // Mark last activity as today to avoid repeating the daily reset on subsequent reloads
+      try {
+        localStorage.setItem(LAST_ACTIVITY_KEY, new Date().toDateString())
+      } catch (e) {
+        // no-op
       }
     }
 
@@ -121,20 +127,20 @@ export function useAppStore() {
       created_at: new Date(),
       updated_at: new Date(),
     }
-    
+
     updateState(prev => ({
       ...prev,
-      tasks: [...prev.tasks, task]
+      tasks: [task, ...prev.tasks]
     }))
-    
+
     return task
   }, [updateState])
 
   const updateTask = useCallback((id: string, updates: Partial<Task>) => {
     updateState(prev => ({
       ...prev,
-      tasks: prev.tasks.map(task => 
-        task.id === id 
+      tasks: prev.tasks.map(task =>
+        task.id === id
           ? { ...task, ...updates, updated_at: new Date() }
           : task
       )
@@ -162,7 +168,7 @@ export function useAppStore() {
   const startSession = useCallback((type: SessionType, taskId?: string, customDuration?: number) => {
     const getPlannedDuration = () => {
       if (customDuration) return customDuration
-      
+
       switch (type) {
         case 'focus':
           return state.userPrefs.pomo_length
@@ -206,10 +212,10 @@ export function useAppStore() {
       const durationMs = endTime.getTime() - prev.currentSession.start_at.getTime()
       const durationMinutes = Math.round(durationMs / 1000 / 60 * 10) / 10
       const duration = Math.max(0.1, durationMinutes)
-      
+
       const plannedDurationMinutes = prev.currentSession.planned_duration
       const completedEarly = duration < (plannedDurationMinutes * 0.8) // 80% threshold
-      
+
       const completedSession = {
         ...prev.currentSession,
         end_at: endTime,
@@ -223,7 +229,7 @@ export function useAppStore() {
       return {
         ...prev,
         currentSession: null,
-        sessions: prev.sessions.map(s => 
+        sessions: prev.sessions.map(s =>
           s.id === prev.currentSession?.id ? completedSession : s
         ),
         isInFocusMode: false,
@@ -232,13 +238,26 @@ export function useAppStore() {
   }, [updateState])
 
   const getTodayTasks = useCallback(() => {
-    return state.tasks.filter(task => 
+    return state.tasks.filter(task =>
       !task.due || task.due <= new Date()
     ).sort((a, b) => {
-      if (a.is_mit && !b.is_mit) return -1
-      if (!a.is_mit && b.is_mit) return 1
+      // Always push completed tasks to the bottom
       if (a.status === 'completed' && b.status !== 'completed') return 1
       if (a.status !== 'completed' && b.status === 'completed') return -1
+
+      // For active tasks, prefer manual sort order if set
+      const aHasOrder = typeof a.sort_order === 'number'
+      const bHasOrder = typeof b.sort_order === 'number'
+      if (aHasOrder && bHasOrder) return (a.sort_order as number) - (b.sort_order as number)
+      if (aHasOrder && !bHasOrder) return -1
+      if (!aHasOrder && bHasOrder) return 1
+
+      // Fallback to previous rules
+      if (a.is_mit && !b.is_mit) return -1
+      if (!a.is_mit && b.is_mit) return 1
+
+      const recency = b.created_at.getTime() - a.created_at.getTime()
+      if (recency !== 0) return recency
       return a.priority.localeCompare(b.priority)
     })
   }, [state.tasks])
@@ -265,7 +284,7 @@ export function useAppStore() {
 
     updateState(prev => ({
       ...prev,
-      tasks: prev.tasks.map(task => 
+      tasks: prev.tasks.map(task =>
         task.id === taskId
           ? { ...task, subtasks: [...task.subtasks, subtask], updated_at: new Date() }
           : task
@@ -278,7 +297,7 @@ export function useAppStore() {
   const updateSubtask = useCallback((taskId: string, subtaskId: string, updates: { title?: string, completed?: boolean }) => {
     updateState(prev => ({
       ...prev,
-      tasks: prev.tasks.map(task => 
+      tasks: prev.tasks.map(task =>
         task.id === taskId
           ? {
               ...task,
@@ -297,7 +316,7 @@ export function useAppStore() {
   const deleteSubtask = useCallback((taskId: string, subtaskId: string) => {
     updateState(prev => ({
       ...prev,
-      tasks: prev.tasks.map(task => 
+      tasks: prev.tasks.map(task =>
         task.id === taskId
           ? {
               ...task,
@@ -309,26 +328,43 @@ export function useAppStore() {
     }))
   }, [updateState])
 
+  const reorderTasks = useCallback((orderedIds: string[]) => {
+    updateState(prev => {
+      const idToOrder = new Map<string, number>()
+      orderedIds.forEach((id, index) => {
+        idToOrder.set(id, index)
+      })
+      return {
+        ...prev,
+        tasks: prev.tasks.map(task =>
+          idToOrder.has(task.id)
+            ? { ...task, sort_order: idToOrder.get(task.id)!, updated_at: new Date() }
+            : task
+        )
+      }
+    })
+  }, [updateState])
+
   const calculateAdaptiveBreakDuration = useCallback((breakType: 'short_break' | 'long_break') => {
     if (!state.userPrefs.adaptive_breaks) {
-      return breakType === 'short_break' 
-        ? state.userPrefs.short_break_length 
+      return breakType === 'short_break'
+        ? state.userPrefs.short_break_length
         : state.userPrefs.long_break_length
     }
 
     // Get recent focus sessions from today
     const today = new Date().toDateString()
     const recentFocusSessions = state.sessions
-      .filter(session => 
-        session.type === 'focus' && 
+      .filter(session =>
+        session.type === 'focus' &&
         session.completed &&
         session.start_at.toDateString() === today
       )
       .slice(-3) // Last 3 focus sessions
 
     if (recentFocusSessions.length === 0) {
-      return breakType === 'short_break' 
-        ? state.userPrefs.short_break_length 
+      return breakType === 'short_break'
+        ? state.userPrefs.short_break_length
         : state.userPrefs.long_break_length
     }
 
@@ -341,24 +377,24 @@ export function useAppStore() {
     const extensions = recentFocusSessions.filter(s => s.extended).length
 
     let adjustment = 0
-    
+
     // If completing early frequently, reduce break time
     if (earlyCompletions >= 2) {
       adjustment -= 1
     }
-    
+
     // If extending frequently, increase break time
     if (extensions >= 2) {
       adjustment += 2
     }
-    
+
     // If consistently completing full sessions, maintain normal breaks
     if (avgCompletionRate >= 0.9 && earlyCompletions === 0 && extensions === 0) {
       adjustment = 0
     }
 
-    const baseDuration = breakType === 'short_break' 
-      ? state.userPrefs.short_break_length 
+    const baseDuration = breakType === 'short_break'
+      ? state.userPrefs.short_break_length
       : state.userPrefs.long_break_length
 
     const adaptedDuration = baseDuration + adjustment
@@ -379,7 +415,7 @@ export function useAppStore() {
       isInFocusMode: false,
       currentTaskId: null,
     }
-    
+
     setState(freshState)
     localStorage.removeItem(STORAGE_KEY)
   }, [])
@@ -414,8 +450,9 @@ export function useAppStore() {
     addSubtask,
     updateSubtask,
     deleteSubtask,
+    reorderTasks,
     calculateAdaptiveBreakDuration,
-    updatePrefs: (prefs: Partial<UserPrefs>) => 
+    updatePrefs: (prefs: Partial<UserPrefs>) =>
       updateState({ userPrefs: { ...state.userPrefs, ...prefs } }),
     resetAllData,
     resetDailyData,

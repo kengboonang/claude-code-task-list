@@ -1,6 +1,7 @@
-import { CheckCircle, Circle, Star, StarOff, Play, Edit, Trash2, Clock } from 'lucide-react'
+import { CheckCircle, Circle, Clock, Edit, GripVertical, Play, Star, StarOff, Trash2 } from 'lucide-react'
+import type { DragEvent as ReactDragEvent } from 'react'
+import type { Task, TaskPriority } from '../types'
 import { SubtaskList } from './SubtaskList'
-import type { Task } from '../types'
 
 interface TaskItemProps {
   task: Task
@@ -12,20 +13,26 @@ interface TaskItemProps {
   onAddSubtask: (taskId: string, title: string) => void
   onUpdateSubtask: (taskId: string, subtaskId: string, updates: { title?: string, completed?: boolean }) => void
   onDeleteSubtask: (taskId: string, subtaskId: string) => void
+  onUpdateTask: (id: string, updates: Partial<Task>) => void
   showFocusButton?: boolean
+  onDragStart?: (taskId: string, e: ReactDragEvent) => void
+  onDragEnd?: (taskId: string, e: ReactDragEvent) => void
 }
 
-export function TaskItem({ 
-  task, 
-  onToggleComplete, 
-  onToggleMIT, 
-  onStartFocus, 
-  onEdit, 
+export function TaskItem({
+  task,
+  onToggleComplete,
+  onToggleMIT,
+  onStartFocus,
+  onEdit,
   onDelete,
   onAddSubtask,
   onUpdateSubtask,
   onDeleteSubtask,
-  showFocusButton = true
+  onUpdateTask,
+  showFocusButton = true,
+  onDragStart,
+  onDragEnd
 }: TaskItemProps) {
   const priorityColors = {
     P1: 'border-l-red-500 bg-red-50',
@@ -46,6 +53,17 @@ export function TaskItem({
       ${task.status === 'completed' ? 'opacity-60' : ''}
     `}>
       <div className="flex items-start gap-3">
+        <button
+          className="mt-0.5 text-gray-300 hover:text-gray-500 cursor-grab"
+          title="Drag to reorder"
+          aria-label="Drag to reorder"
+          draggable={!!onDragStart}
+          onDragStart={(e) => onDragStart?.(task.id, e)}
+          onDragEnd={(e) => onDragEnd?.(task.id, e)}
+        >
+          <GripVertical className="w-4 h-4" />
+        </button>
+
         <button
           onClick={() => onToggleComplete(task.id)}
           className="mt-0.5 text-gray-400 hover:text-primary-600"
@@ -78,7 +96,7 @@ export function TaskItem({
                   {task.is_mit ? <Star className="w-4 h-4 fill-current" /> : <StarOff className="w-4 h-4" />}
                 </button>
               )}
-              
+
               {task.status === 'completed' && task.is_mit && (
                 <div className="p-1 text-yellow-400" title="Was MIT">
                   <Star className="w-4 h-4 fill-current" />
@@ -115,9 +133,17 @@ export function TaskItem({
 
           <div className="flex items-center justify-between mt-2">
             <div className="flex items-center gap-2 text-xs">
-              <span className={`px-2 py-1 rounded-full font-medium ${priorityTextColors[task.priority]} bg-opacity-20`}>
-                {task.priority}
-              </span>
+              <select
+                aria-label="Priority"
+                title="Priority"
+                value={task.priority}
+                onChange={(e) => onUpdateTask(task.id, { priority: e.target.value as TaskPriority })}
+                className={`px-2 py-1 text-xs rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-gray-100 ${priorityTextColors[task.priority]} focus:outline-none focus:ring-2 focus:ring-primary-500`}
+              >
+                <option value="P1">P1</option>
+                <option value="P2">P2</option>
+                <option value="P3">P3</option>
+              </select>
 
               {task.estimate_pomos && (
                 <div className="flex items-center gap-1 text-gray-500">

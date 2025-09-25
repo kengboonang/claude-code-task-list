@@ -23,6 +23,7 @@ export interface Task {
   subtasks: Subtask[]
   created_at: Date
   updated_at: Date
+  sort_order?: number
 }
 
 export interface Session {

@@ -1,5 +1,5 @@
-import React, { useState } from 'react'
-import { Plus, Check, X, Edit3 } from 'lucide-react'
+import { Check, Edit3, Plus, X } from 'lucide-react'
+import React, { useRef, useState } from 'react'
 import type { Subtask } from '../types'
 
 interface SubtaskListProps {
@@ -11,11 +11,11 @@ interface SubtaskListProps {
   readonly?: boolean
 }
 
-export function SubtaskList({ 
-  taskId, 
-  subtasks, 
-  onAddSubtask, 
-  onUpdateSubtask, 
+export function SubtaskList({
+  taskId,
+  subtasks,
+  onAddSubtask,
+  onUpdateSubtask,
   onDeleteSubtask,
   readonly = false
 }: SubtaskListProps) {
@@ -23,14 +23,17 @@ export function SubtaskList({
   const [showAddForm, setShowAddForm] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingTitle, setEditingTitle] = useState('')
+  const inputRef = useRef<HTMLInputElement>(null)
 
   const handleAddSubtask = (e: React.FormEvent) => {
     e.preventDefault()
     if (!newSubtaskTitle.trim()) return
 
-    onAddSubtask(taskId, newSubtaskTitle)
+    onAddSubtask(taskId, newSubtaskTitle.trim())
     setNewSubtaskTitle('')
-    setShowAddForm(false)
+    // Keep the add form open and refocus the input to quickly add another
+    setShowAddForm(true)
+    inputRef.current?.focus()
   }
 
   const handleEditSubtask = (subtask: Subtask) => {
@@ -64,7 +67,7 @@ export function SubtaskList({
       {totalCount > 0 && (
         <div className="flex items-center gap-2 mb-2">
           <div className="flex-1 bg-gray-200 rounded-full h-2">
-            <div 
+            <div
               className="bg-blue-600 h-2 rounded-full transition-all duration-300"
               style={{ width: `${(completedCount / totalCount) * 100}%` }}
             />
@@ -78,7 +81,7 @@ export function SubtaskList({
       {/* Subtasks list */}
       <div className="space-y-1">
         {subtasks.map((subtask) => (
-          <div 
+          <div
             key={subtask.id}
             className="flex items-center gap-2 py-1 px-2 rounded hover:bg-gray-50 group"
           >
@@ -125,10 +128,10 @@ export function SubtaskList({
               </div>
             ) : (
               <>
-                <span 
+                <span
                   className={`flex-1 text-sm ${
-                    subtask.completed 
-                      ? 'line-through text-gray-500' 
+                    subtask.completed
+                      ? 'line-through text-gray-500'
                       : 'text-gray-700'
                   }`}
                 >
@@ -163,6 +166,7 @@ export function SubtaskList({
             <form onSubmit={handleAddSubtask} className="flex items-center gap-1">
               <input
                 type="text"
+                ref={inputRef}
                 value={newSubtaskTitle}
                 onChange={(e) => setNewSubtaskTitle(e.target.value)}
                 placeholder="Add a subtask..."

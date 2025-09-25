@@ -1,6 +1,12 @@
-import { useState, useMemo } from 'react'
-import { Calendar, Clock, CheckCircle, Target, TrendingUp, X } from 'lucide-react'
-import type { Task, Session, DaySummary } from '../types'
+import { Calendar, CheckCircle, Clock, Target, TrendingUp, X } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import type { DaySummary, Session, Task } from '../types'
+
+const toLocalDateKey = (d: Date) => {
+  const tz = d.getTimezoneOffset()
+  const local = new Date(d.getTime() - tz * 60000)
+  return local.toISOString().split('T')[0]
+}
 
 interface DailyReviewProps {
   tasks: Task[]
@@ -9,26 +15,26 @@ interface DailyReviewProps {
 }
 
 export function DailyReview({ tasks, sessions, onClose }: DailyReviewProps) {
-  const [selectedDate, setSelectedDate] = useState(new Date().toDateString())
+  const [selectedDateKey, setSelectedDateKey] = useState(toLocalDateKey(new Date()))
 
   const dailySummary = useMemo((): DaySummary => {
-    const date = selectedDate
-    const todaySessions = sessions.filter(s => 
-      s.completed && s.start_at.toDateString() === date
+    const date = selectedDateKey
+    const todaySessions = sessions.filter(s =>
+      s.completed && toLocalDateKey(s.start_at) === date
     )
-    
+
     const focusSessions = todaySessions.filter(s => s.type === 'focus')
     const totalFocusMinutes = focusSessions.reduce((acc, s) => acc + s.duration, 0)
-    
-    const completedToday = tasks.filter(t => 
-      t.status === 'completed' && 
-      t.updated_at.toDateString() === date
+
+    const completedToday = tasks.filter(t =>
+      t.status === 'completed' &&
+      toLocalDateKey(t.updated_at) === date
     )
-    
+
     // Calculate focus score (planned vs completed ratio)
     const plannedMinutes = focusSessions.reduce((acc, s) => acc + s.planned_duration, 0)
     const focusScore = plannedMinutes > 0 ? Math.round((totalFocusMinutes / plannedMinutes) * 100) : 0
-    
+
     return {
       date,
       total_focus_minutes: Math.round(totalFocusMinutes * 10) / 10,
@@ -36,18 +42,18 @@ export function DailyReview({ tasks, sessions, onClose }: DailyReviewProps) {
       tasks_completed: completedToday.map(t => t.id),
       focus_score: focusScore
     }
-  }, [tasks, sessions, selectedDate])
+  }, [tasks, sessions, selectedDateKey])
 
   const completedTasks = tasks.filter(t => dailySummary.tasks_completed.includes(t.id))
   const completedMIT = completedTasks.find(t => t.is_mit)
-  
-  const todayFocusSessions = sessions.filter(s => 
-    s.type === 'focus' && 
-    s.completed && 
-    s.start_at.toDateString() === selectedDate
+
+  const todayFocusSessions = sessions.filter(s =>
+    s.type === 'focus' &&
+    s.completed &&
+    toLocalDateKey(s.start_at) === selectedDateKey
   )
 
-  const rolloverTasks = tasks.filter(t => 
+  const rolloverTasks = tasks.filter(t =>
     t.status === 'todo' || t.status === 'in_progress'
   )
 
@@ -73,7 +79,7 @@ export function DailyReview({ tasks, sessions, onClose }: DailyReviewProps) {
     return `${mins}m`
   }
 
-  const isToday = selectedDate === new Date().toDateString()
+  const isToday = selectedDateKey === toLocalDateKey(new Date())
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
@@ -94,15 +100,15 @@ export function DailyReview({ tasks, sessions, onClose }: DailyReviewProps) {
               <X className="w-5 h-5 text-gray-500" />
             </button>
           </div>
-          
+
           {/* Date Picker */}
           <div className="mt-4">
-            <input
-              type="date"
-              value={selectedDate ? new Date(selectedDate).toISOString().split('T')[0] : ''}
-              onChange={(e) => setSelectedDate(new Date(e.target.value).toDateString())}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-            />
+              <input
+                type="date"
+                value={selectedDateKey}
+                onChange={(e) => setSelectedDateKey(e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+              />
             {isToday && (
               <span className="ml-3 px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full">
                 Today
@@ -241,7 +247,7 @@ export function DailyReview({ tasks, sessions, onClose }: DailyReviewProps) {
                               {task?.title || 'Quick Focus Session'}
                             </div>
                             <div className="text-sm text-blue-600">
-                              {session.start_at.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - 
+                              {session.start_at.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} -
                               {session.end_at?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                             </div>
                             {session.notes && (
