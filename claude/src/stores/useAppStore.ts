@@ -141,7 +141,13 @@ export function useAppStore() {
       ...prev,
       tasks: prev.tasks.map(task =>
         task.id === id
-          ? { ...task, ...updates, updated_at: new Date() }
+          ? {
+              ...task,
+              ...updates,
+              updated_at: updates.status === 'completed' && task.status !== 'completed'
+                ? new Date() // Only update timestamp when marking as completed
+                : task.updated_at
+            }
           : task
       )
     }))
@@ -270,9 +276,14 @@ export function useAppStore() {
     return state.tasks.find(task => task.is_mit && task.status !== 'completed')
   }, [state.tasks])
 
-  const getCompletedMIT = useCallback(() => {
-    return state.tasks.find(task => task.is_mit && task.status === 'completed')
-  }, [state.tasks])
+const getCompletedMIT = useCallback(() => {
+  const today = new Date().toDateString()
+  return state.tasks.find(task =>
+    task.is_mit &&
+    task.status === 'completed' &&
+    task.updated_at.toDateString() === today
+  )
+}, [state.tasks])
 
   const addSubtask = useCallback((taskId: string, subtaskTitle: string) => {
     const subtask = {
@@ -420,20 +431,20 @@ export function useAppStore() {
     localStorage.removeItem(STORAGE_KEY)
   }, [])
 
-  const resetDailyData = useCallback(() => {
-    updateState(prev => ({
-      ...prev,
-      tasks: prev.tasks.map(task => ({
-        ...task,
-        is_mit: false,
-        status: task.status === 'completed' ? 'todo' : task.status,
-        updated_at: new Date()
-      })),
-      currentSession: null,
-      isInFocusMode: false,
-      currentTaskId: null,
-    }))
-  }, [updateState])
+const resetDailyData = useCallback(() => {
+  updateState(prev => ({
+    ...prev,
+    tasks: prev.tasks.map(task => ({
+      ...task,
+      is_mit: false,
+      // Preserve completed status and updated_at for completed tasks
+      ...(task.status !== 'completed' && { updated_at: new Date() })
+    })),
+    currentSession: null,
+    isInFocusMode: false,
+    currentTaskId: null,
+  }))
+}, [updateState])
 
   return {
     ...state,

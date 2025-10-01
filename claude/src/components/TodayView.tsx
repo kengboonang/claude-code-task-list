@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { Session, Task, TaskPriority } from '../types'
 import { DailyReview } from './DailyReview'
 import DailyReviewPanel from './DailyReviewPanel'
+import { FocusSessionsModal } from './FocusSessionsModal'
 import { SessionHistory } from './SessionHistory'
 import { TaskList } from './TaskList'
 import { ThemeToggle } from './ThemeToggle'
@@ -71,6 +72,7 @@ export function TodayView({
   const [priorityFilter, setPriorityFilter] = useState<'All' | TaskPriority>('All')
   const [showResetMenu, setShowResetMenu] = useState(false)
   const [showDailyReview, setShowDailyReview] = useState(false)
+  const [showFocusSessionsModal, setShowFocusSessionsModal] = useState(false)
   const resetMenuRef = useRef<HTMLDivElement>(null)
 
   const todaysSessions = sessions.filter(session => {
@@ -136,7 +138,14 @@ export function TodayView({
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:flex-1 lg:min-h-0">
         {/* Left Sidebar: Calendar + Daily Review */}
         <aside className="lg:col-span-4 lg:h-full lg:min-h-0">
-          <DailyReviewPanel className="h-full" tasks={allTasks} sessions={sessions} onUpdateTask={onUpdateTask} onDeleteTask={onDeleteTask} />
+          <DailyReviewPanel
+            className="h-full"
+            tasks={allTasks}
+            sessions={sessions}
+            onUpdateTask={onUpdateTask}
+            onDeleteTask={onDeleteTask}
+            onFocusCardClick={() => setShowFocusSessionsModal(true)}
+          />
         </aside>
 
         {/* Main Content */}
@@ -389,6 +398,14 @@ export function TodayView({
               tasks={allTasks}
               sessions={sessions}
               onClose={() => setShowDailyReview(false)}
+            />
+          )}
+
+          {showFocusSessionsModal && (
+            <FocusSessionsModal
+              sessions={sessions}
+              tasks={allTasks}
+              onClose={() => setShowFocusSessionsModal(false)}
             />
           )}
         </main>
