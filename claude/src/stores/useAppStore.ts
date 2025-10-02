@@ -277,6 +277,10 @@ export function useAppStore() {
       if (a.status === 'completed' && b.status !== 'completed') return 1
       if (a.status !== 'completed' && b.status === 'completed') return -1
 
+      // Sort by creation date (newest first)
+      const recency = b.created_at.getTime() - a.created_at.getTime()
+      if (recency !== 0) return recency
+
       // For active tasks, prefer manual sort order if set
       const aHasOrder = typeof a.sort_order === 'number'
       const bHasOrder = typeof b.sort_order === 'number'
@@ -288,8 +292,6 @@ export function useAppStore() {
       if (a.is_mit && !b.is_mit) return -1
       if (!a.is_mit && b.is_mit) return 1
 
-      const recency = b.created_at.getTime() - a.created_at.getTime()
-      if (recency !== 0) return recency
       return a.priority.localeCompare(b.priority)
     })
   }, [state.tasks])
@@ -499,4 +501,3 @@ const resetDailyData = useCallback(() => {
 
 // Export utility functions for testing
 export { shouldResetForNewDay };
-
