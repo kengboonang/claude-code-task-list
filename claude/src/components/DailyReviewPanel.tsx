@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react'
 import type { Session, Task } from '../types'
 import Calendar from './Calendar'
 import CompletedTasksModal from './CompletedTasksModal'
+import { TodaySessionsModal } from './TodaySessionsModal'
 
 /**
  * Format a Date into YYYY-MM-DD in local time (not UTC)
@@ -44,7 +45,6 @@ interface DailyReviewPanelProps {
   sessions: Session[]
   onUpdateTask: (id: string, updates: Partial<Task>) => void
   onDeleteTask: (id: string) => void
-  onFocusCardClick: () => void
   className?: string
 }
 
@@ -52,9 +52,10 @@ interface DailyReviewPanelProps {
  * Sidebar version of DailyReview (non-modal) with a calendar on top.
  * Clicking on calendar dates switches the selected day and updates the summary.
  */
-export default function DailyReviewPanel({ tasks, sessions, onUpdateTask, onDeleteTask, onFocusCardClick, className }: DailyReviewPanelProps) {
+export default function DailyReviewPanel({ tasks, sessions, onUpdateTask, onDeleteTask, className }: DailyReviewPanelProps) {
   const [selectedDateKey, setSelectedDateKey] = useState<string>(toLocalDateKey(new Date()))
-const [showCompletedModal, setShowCompletedModal] = useState(false)
+  const [showCompletedModal, setShowCompletedModal] = useState(false)
+  const [showTodaySessionsModal, setShowTodaySessionsModal] = useState(false)
 
   const daily = useMemo(() => {
     const date = selectedDateKey
@@ -112,7 +113,7 @@ const [showCompletedModal, setShowCompletedModal] = useState(false)
       <div className="grid grid-cols-2 gap-3">
         <div
           className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 text-center border border-blue-200 dark:border-blue-800 cursor-pointer hover:shadow-md transition-shadow"
-          onClick={onFocusCardClick}
+          onClick={() => setShowTodaySessionsModal(true)}
           title="View focus sessions"
         >
           <Clock className="w-5 h-5 text-blue-600 dark:text-blue-300 mx-auto mb-1" />
@@ -221,7 +222,7 @@ const [showCompletedModal, setShowCompletedModal] = useState(false)
           </div>
         )}
       </div>
-      </div>
+    </div>
     {showCompletedModal && (
       <CompletedTasksModal
         tasks={daily.completedTasks}
@@ -231,6 +232,12 @@ const [showCompletedModal, setShowCompletedModal] = useState(false)
         onClose={() => setShowCompletedModal(false)}
       />
     )}
-    </div>
+    {showTodaySessionsModal && (
+      <TodaySessionsModal
+        isOpen={showTodaySessionsModal}
+        onClose={() => setShowTodaySessionsModal(false)}
+      />
+    )}
+  </div>
   )
 }

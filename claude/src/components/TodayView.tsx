@@ -133,6 +133,14 @@ export function TodayView({
     }
   }
 
+  const handleCreateTask = (task: Omit<Task, 'id' | 'created_at' | 'updated_at'>) => {
+    const newTask = {
+      ...task,
+      priority: priorityFilter === 'All' ? 'P1' : priorityFilter,
+    }
+    onCreateTask(newTask)
+  }
+
   return (
     <div className="max-w-7xl mx-auto p-6 lg:h-[calc(100vh-3rem)] lg:flex lg:flex-col">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:flex-1 lg:min-h-0">
@@ -144,7 +152,6 @@ export function TodayView({
             sessions={sessions}
             onUpdateTask={onUpdateTask}
             onDeleteTask={onDeleteTask}
-            onFocusCardClick={() => setShowFocusSessionsModal(true)}
           />
         </aside>
 
@@ -362,7 +369,7 @@ export function TodayView({
 
             <TaskList
               tasks={filteredTasks}
-              onCreateTask={onCreateTask}
+              onCreateTask={handleCreateTask}
               onUpdateTask={onUpdateTask}
               onDeleteTask={onDeleteTask}
               onSetMIT={onSetMIT}
