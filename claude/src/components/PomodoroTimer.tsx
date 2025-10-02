@@ -1,5 +1,5 @@
-import { useEffect, useState, useImperativeHandle, forwardRef, useMemo, useCallback } from 'react'
-import { Play, Pause, Square, Plus, RotateCcw, Clock, Keyboard } from 'lucide-react'
+import { Clock, Keyboard, Pause, Play, Plus, RotateCcw, Square } from 'lucide-react'
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useState } from 'react'
 import { useTimer } from '../hooks/useTimer'
 import { useTimerKeyboard } from '../hooks/useTimerKeyboard'
 import type { SessionType, UserPrefs } from '../types'
@@ -10,6 +10,7 @@ interface PomodoroTimerProps {
   onSessionComplete: (notes?: string, completeTask?: boolean, continueSession?: boolean, newSubtaskTitle?: string) => void
   onSessionStart?: () => void
   taskTitle?: string
+  startTimer: () => void
 }
 
 interface PomodoroTimerRef {
@@ -26,12 +27,13 @@ interface PomodoroTimerRef {
   }
 }
 
-export const PomodoroTimer = forwardRef<PomodoroTimerRef, PomodoroTimerProps>(({ 
-  sessionType, 
-  userPrefs, 
-  onSessionComplete, 
+export const PomodoroTimer = forwardRef<PomodoroTimerRef, PomodoroTimerProps>(({
+  sessionType,
+  userPrefs,
+  onSessionComplete,
   onSessionStart,
-  taskTitle 
+  taskTitle,
+  startTimer
 }, ref) => {
   const [sessionNotes, setSessionNotes] = useState('')
   const [showNotes, setShowNotes] = useState(false)
@@ -61,9 +63,10 @@ export const PomodoroTimer = forwardRef<PomodoroTimerRef, PomodoroTimerProps>(({
     if (!hasStarted) {
       setHasStarted(true)
       onSessionStart?.()
+      startTimer()
     }
     timer.start()
-  }, [hasStarted, onSessionStart, timer])
+  }, [hasStarted, onSessionStart, startTimer, timer])
 
   // Timer controls for keyboard shortcuts
   const timerControls = useMemo(() => ({
@@ -148,27 +151,27 @@ export const PomodoroTimer = forwardRef<PomodoroTimerRef, PomodoroTimerProps>(({
     try {
       // Create a pleasant ding sound using Web Audio API
       const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
-      
+
       // Create oscillator for a pleasant ding
       const oscillator = audioContext.createOscillator()
       const gainNode = audioContext.createGain()
-      
+
       oscillator.connect(gainNode)
       gainNode.connect(audioContext.destination)
-      
+
       // Set frequency for a pleasant bell-like sound
       oscillator.frequency.setValueAtTime(800, audioContext.currentTime)
       oscillator.frequency.exponentialRampToValueAtTime(400, audioContext.currentTime + 0.1)
-      
+
       // Set volume envelope
       gainNode.gain.setValueAtTime(0, audioContext.currentTime)
       gainNode.gain.linearRampToValueAtTime(0.3, audioContext.currentTime + 0.01)
       gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.8)
-      
+
       oscillator.type = 'sine'
       oscillator.start(audioContext.currentTime)
       oscillator.stop(audioContext.currentTime + 0.8)
-      
+
       // Cleanup
       setTimeout(() => {
         try {
@@ -193,10 +196,10 @@ export const PomodoroTimer = forwardRef<PomodoroTimerRef, PomodoroTimerProps>(({
     // Show browser notification if permission granted
     if ('Notification' in window && Notification.permission === 'granted') {
       const title = sessionType === 'focus' ? '🎉 Focus Session Complete!' : '✨ Break Time Over!'
-      const body = sessionType === 'focus' 
+      const body = sessionType === 'focus'
         ? `Great work! ${taskTitle ? `You worked on "${taskTitle}". ` : ''}Time for a well-deserved break!`
         : 'Ready to focus again? Your next session awaits!'
-      
+
       const notification = new Notification(title, {
         body,
         icon: '/favicon.ico',
@@ -265,7 +268,7 @@ export const PomodoroTimer = forwardRef<PomodoroTimerRef, PomodoroTimerProps>(({
         <h2 className={`text-2xl font-bold ${config.textColor} mb-2`}>
           {config.title}
         </h2>
-        
+
         {taskTitle && sessionType === 'focus' && (
           <p className="text-gray-600 dark:text-gray-400 mb-4 text-sm">
             Working on: <span className="font-medium">{taskTitle}</span>
@@ -297,7 +300,7 @@ export const PomodoroTimer = forwardRef<PomodoroTimerRef, PomodoroTimerProps>(({
               className={`text-${config.color}-600 transition-all duration-1000 ease-linear`}
             />
           </svg>
-          
+
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="text-center">
               <div className={`text-4xl font-mono font-bold ${config.textColor}`}>
@@ -486,7 +489,7 @@ export const PomodoroTimer = forwardRef<PomodoroTimerRef, PomodoroTimerProps>(({
             >
               {showNotes ? 'Hide' : 'Add'} session notes
             </button>
-            
+
             {showNotes && (
               <textarea
                 value={sessionNotes}
@@ -529,7 +532,7 @@ export const PomodoroTimer = forwardRef<PomodoroTimerRef, PomodoroTimerProps>(({
             ) : (
               <div className="space-y-3">
                 <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">How do you want to finish?</h4>
-                
+
                 {/* Quick Complete */}
                 <button
                   onClick={handleComplete}

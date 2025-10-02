@@ -30,6 +30,7 @@ function App() {
     calculateAdaptiveBreakDuration,
     resetAllData,
     resetDailyData,
+    startTimer,
   } = useAppStore()
 
   const [sessionType, setSessionType] = useState<SessionType>('focus')
@@ -171,6 +172,7 @@ function App() {
           onAddSubtask={addSubtask}
           onUpdateSubtask={updateSubtask}
           onDeleteSubtask={deleteSubtask}
+          startTimer={startTimer}
         />
       ) : (
         <TodayView

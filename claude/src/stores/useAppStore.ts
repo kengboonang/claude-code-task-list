@@ -1,5 +1,10 @@
-import { useCallback, useState } from 'react'
-import type { AppState, Session, SessionType, Task, UserPrefs } from '../types'
+import { useCallback, useState } from 'react';
+import type { AppState, Session, SessionType, Task, UserPrefs } from '../types';
+
+// Extend the Session type with a new field
+type ExtendedSession = Session & {
+  timer_start_at?: Date;
+};
 
 const DEFAULT_PREFS: UserPrefs = {
   pomo_length: 25,
@@ -187,16 +192,17 @@ export function useAppStore() {
       }
     }
 
-    const session: Session = {
+    const session: ExtendedSession = {
       id: generateId(),
       task_id: taskId || undefined, // Allow undefined for taskless sessions
-      start_at: new Date(),
+      start_at: new Date(), // This is now the session creation time, not the timer start time
       duration: 0,
       planned_duration: getPlannedDuration(),
       type,
       completed: false,
       completed_early: false,
       extended: false,
+      timer_start_at: undefined, // New field to track when the timer actually starts
     }
 
     updateState(prev => ({
@@ -210,12 +216,32 @@ export function useAppStore() {
     return session
   }, [updateState, state.userPrefs.pomo_length, state.userPrefs.short_break_length, state.userPrefs.long_break_length])
 
+  const startTimer = useCallback(() => {
+    updateState(prev => {
+      if (!prev.currentSession) return prev
+
+      const updatedSession: ExtendedSession = {
+        ...prev.currentSession,
+        timer_start_at: new Date(),
+      }
+
+      return {
+        ...prev,
+        currentSession: updatedSession,
+        sessions: prev.sessions.map(s =>
+          s.id === updatedSession.id ? updatedSession : s
+        ),
+      }
+    })
+  }, [updateState])
+
   const completeSession = useCallback((notes?: string, wasExtended?: boolean) => {
     updateState(prev => {
       if (!prev.currentSession) return prev
 
       const endTime = new Date()
-      const durationMs = endTime.getTime() - prev.currentSession.start_at.getTime()
+      const timerStartTime = (prev.currentSession as ExtendedSession).timer_start_at || prev.currentSession.start_at
+      const durationMs = endTime.getTime() - timerStartTime.getTime()
       const durationMinutes = Math.round(durationMs / 1000 / 60 * 10) / 10
       const duration = Math.max(0.1, durationMinutes)
 
@@ -454,6 +480,7 @@ const resetDailyData = useCallback(() => {
     setMIT,
     startSession,
     completeSession,
+    startTimer,
     getTodayTasks,
     getActiveTodayTasks,
     getMIT,
@@ -471,4 +498,5 @@ const resetDailyData = useCallback(() => {
 }
 
 // Export utility functions for testing
-export { shouldResetForNewDay }
+export { shouldResetForNewDay };
+

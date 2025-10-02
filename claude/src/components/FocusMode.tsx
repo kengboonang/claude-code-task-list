@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react'
-import { X, CheckCircle, MoreHorizontal, StopCircle } from 'lucide-react'
+import { CheckCircle, MoreHorizontal, StopCircle, X } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import type { SessionType, Task, UserPrefs } from '../types'
 import { PomodoroTimer } from './PomodoroTimer'
 import { SubtaskList } from './SubtaskList'
-import type { Task, UserPrefs, SessionType } from '../types'
 
 interface FocusModeProps {
   task: Task | null
@@ -15,19 +15,21 @@ interface FocusModeProps {
   onAddSubtask?: (taskId: string, title: string) => void
   onUpdateSubtask?: (taskId: string, subtaskId: string, updates: { title?: string, completed?: boolean }) => void
   onDeleteSubtask?: (taskId: string, subtaskId: string) => void
+  startTimer: () => void
 }
 
-export function FocusMode({ 
-  task, 
+export function FocusMode({
+  task,
   sessionType,
   userPrefs,
-  onExitFocus, 
+  onExitFocus,
   onSessionComplete,
   onSessionStart,
   onTaskComplete,
   onAddSubtask,
   onUpdateSubtask,
-  onDeleteSubtask
+  onDeleteSubtask,
+  startTimer
 }: FocusModeProps) {
   const [showCancelConfirm, setShowCancelConfirm] = useState(false)
 
@@ -89,7 +91,7 @@ export function FocusMode({
               </button>
             )}
           </div>
-          
+
           <button
             onClick={onExitFocus}
             className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex-shrink-0"
@@ -121,7 +123,7 @@ export function FocusMode({
                         {task.priority}
                       </span>
                     </div>
-                    
+
                     {task.notes && (
                       <p className="text-gray-600 dark:text-gray-400 mb-3">{task.notes}</p>
                     )}
@@ -166,7 +168,7 @@ export function FocusMode({
                         General Work
                       </span>
                     </div>
-                    
+
                     <p className="text-gray-600 dark:text-gray-400 mb-3">
                       Focus on whatever needs your attention right now. Use this time for planning, organizing, or any task that comes to mind.
                     </p>
@@ -184,7 +186,7 @@ export function FocusMode({
                     <CheckCircle className="w-4 h-4" />
                     Complete
                   </button>
-                  
+
                   <button className="p-2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
                     <MoreHorizontal className="w-4 h-4" />
                   </button>
@@ -201,7 +203,7 @@ export function FocusMode({
               {sessionType === 'short_break' ? 'Short Break Time' : 'Long Break Time'}
             </h2>
             <p className="text-gray-600 dark:text-gray-400">
-              {sessionType === 'short_break' 
+              {sessionType === 'short_break'
                 ? 'Take a few minutes to rest and recharge. Stay nearby for the next focus session.'
                 : 'Time for a longer break! Step away from your workspace and do something refreshing.'
               }
@@ -216,6 +218,7 @@ export function FocusMode({
           onSessionComplete={onSessionComplete}
           onSessionStart={onSessionStart}
           taskTitle={task?.title}
+          startTimer={startTimer}
         />
 
         {/* Focus Tips */}
@@ -264,7 +267,7 @@ export function FocusMode({
               <p className="text-gray-600 dark:text-gray-400 mb-6">
                 Are you sure you want to cancel this session? Your progress will be saved, but the session will be marked as interrupted.
               </p>
-              
+
               <div className="flex gap-3 justify-end">
                 <button
                   onClick={() => setShowCancelConfirm(false)}
