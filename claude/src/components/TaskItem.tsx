@@ -162,7 +162,14 @@ export function TaskItem({
             <div className="text-xs text-gray-500 space-y-1 text-right">
               <div>
                 {task.deadline ? (
-                  `Deadline: ${new Date(task.deadline).toLocaleString()}`
+                  `Deadline: ${new Date(task.deadline).toLocaleString(undefined, {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
+                    hour: 'numeric',
+                    minute: '2-digit',
+                    hour12: true
+                  })}`
                 ) : (
                   'No deadline'
                 )}
