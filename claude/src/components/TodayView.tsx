@@ -67,7 +67,14 @@ export function TodayView({
       return !mit && activeTodayTasks.length > 0
     }
   })
-  const [priorityFilter, setPriorityFilter] = useState<'All' | TaskPriority>('All')
+  const [priorityFilter, setPriorityFilter] = useState<'All' | TaskPriority>(() => {
+    try {
+      const saved = localStorage.getItem('taskPriorityFilter')
+      return (saved as 'All' | TaskPriority) || 'All'
+    } catch {
+      return 'All'
+    }
+  })
   const [showResetMenu, setShowResetMenu] = useState(false)
   const [showDailyReview, setShowDailyReview] = useState(false)
   const resetMenuRef = useRef<HTMLDivElement>(null)
@@ -99,6 +106,15 @@ export function TodayView({
       return () => document.removeEventListener('mousedown', handleClickOutside)
     }
   }, [showResetMenu])
+
+  // Save priority filter to localStorage when it changes
+  useEffect(() => {
+    try {
+      localStorage.setItem('taskPriorityFilter', priorityFilter)
+    } catch {
+      // Silently fail if localStorage is not available
+    }
+  }, [priorityFilter])
 
   const filteredTasks = priorityFilter === 'All'
     ? activeTodayTasks
