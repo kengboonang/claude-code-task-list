@@ -159,11 +159,13 @@ export function TaskItem({
               ))}
             </div>
 
-            {task.due && (
-              <div className="text-xs text-gray-500">
-                Due: {task.due.toLocaleDateString()}
-              </div>
-            )}
+            <div className="text-xs text-gray-500">
+              {task.deadline ? (
+                `Deadline: ${new Date(task.deadline).toLocaleString()}`
+              ) : (
+                'No deadline'
+              )}
+            </div>
           </div>
 
           {/* Subtasks */}

@@ -1,6 +1,8 @@
-import { Plus, X } from 'lucide-react'
+import { Calendar, Plus, Repeat, X } from 'lucide-react'
 import React, { useState } from 'react'
-import type { Task } from '../types'
+import DatePicker from 'react-datepicker'
+import 'react-datepicker/dist/react-datepicker.css'
+import type { RepeatConfig, RepeatFrequency, Task } from '../types'
 
 interface TaskFormProps {
   onSubmit: (task: Omit<Task, 'id' | 'created_at' | 'updated_at'>) => void
@@ -12,9 +14,24 @@ interface TaskFormProps {
 export function TaskForm({ onSubmit, onCancel, initialData, isQuickAdd = false }: TaskFormProps) {
   const [title, setTitle] = useState(initialData?.title || '')
   const [notes, setNotes] = useState(initialData?.notes || '')
-  // Remove priority state
   const [estimatePomos, setEstimatePomos] = useState(initialData?.estimate_pomos?.toString() || '')
   const [tags, setTags] = useState(initialData?.tags?.join(', ') || '')
+  const [deadline, setDeadline] = useState<Date | null>(initialData?.deadline ? new Date(initialData.deadline) : null)
+  const [repeat, setRepeat] = useState<RepeatConfig | null>(initialData?.repeat || null)
+  const [showRepeatModal, setShowRepeatModal] = useState(false)
+
+  const toggleRepeatModal = () => {
+    setShowRepeatModal(!showRepeatModal)
+  }
+
+  const handleRepeatChange = (newRepeatConfig: RepeatConfig | null) => {
+    setRepeat(newRepeatConfig)
+    setShowRepeatModal(false)
+  }
+
+  const handleDeadlineChange = (date: Date | null) => {
+    setDeadline(date)
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -29,6 +46,8 @@ export function TaskForm({ onSubmit, onCancel, initialData, isQuickAdd = false }
       status: 'todo',
       is_mit: false,
       subtasks: [],
+      deadline: deadline ? deadline.toISOString() : undefined,
+      repeat: repeat || undefined,
     })
 
     if (isQuickAdd) {
@@ -36,7 +55,8 @@ export function TaskForm({ onSubmit, onCancel, initialData, isQuickAdd = false }
       setNotes('')
       setEstimatePomos('')
       setTags('')
-      // Remove setPriority('P1')
+      setDeadline(null)
+      setRepeat(null)
     }
   }
 
@@ -58,7 +78,31 @@ export function TaskForm({ onSubmit, onCancel, initialData, isQuickAdd = false }
         >
           <Plus className="w-4 h-4" />
         </button>
-        {/* Remove priority dropdown */}
+        <DatePicker
+          selected={deadline}
+          onChange={handleDeadlineChange}
+          showTimeSelect
+          timeFormat="HH:mm"
+          timeIntervals={15}
+          timeCaption="Time"
+          dateFormat="MMMM d, yyyy h:mm aa"
+          customInput={
+            <button
+              type="button"
+              className={`px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent active:transform-none active:translate-x-0 active:translate-y-0 ${deadline ? 'bg-primary-500 text-white hover:bg-primary-600' : ''}`}
+            >
+              <Calendar className="w-6 h-6 active:transform-none active:translate-x-0 active:translate-y-0" />
+            </button>
+          }
+        />
+        <button
+          type="button"
+          onClick={toggleRepeatModal}
+          className={`px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent active:transform-none active:translate-x-0 active:translate-y-0 ${repeat ? 'bg-primary-500 text-white hover:bg-primary-600' : ''}`}
+          title={repeat ? `Repeats ${repeat.frequency}` : 'Set to repeat'}
+        >
+          <Repeat className="w-6 h-6 active:transform-none active:translate-x-0 active:translate-y-0" />
+        </button>
       </form>
     )
   }
@@ -130,9 +174,35 @@ export function TaskForm({ onSubmit, onCancel, initialData, isQuickAdd = false }
           />
         </div>
 
-        <div className="flex gap-2 pt-4">
+        <div className="flex items-center gap-4 pt-4">
           <button type="submit" className="btn-primary">
             {initialData ? 'Update' : 'Create'} Task
+          </button>
+          <DatePicker
+            selected={deadline}
+            onChange={handleDeadlineChange}
+            showTimeSelect
+            timeFormat="HH:mm"
+            timeIntervals={15}
+            timeCaption="Time"
+            dateFormat="MMMM d, yyyy h:mm aa"
+            customInput={
+              <button
+                type="button"
+                className={`px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent flex items-center active:transform-none active:translate-x-0 active:translate-y-0 ${deadline ? 'bg-primary-500 text-white hover:bg-primary-600' : ''}`}
+              >
+                <Calendar className="w-6 h-6 mr-2 active:transform-none active:translate-x-0 active:translate-y-0" />
+                {deadline ? `Deadline: ${deadline.toLocaleString()}` : 'Set Deadline'}
+              </button>
+            }
+          />
+          <button
+            type="button"
+            onClick={toggleRepeatModal}
+            className={`px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent flex items-center active:transform-none active:translate-x-0 active:translate-y-0 ${repeat ? 'bg-primary-500 text-white hover:bg-primary-600' : ''}`}
+          >
+            <Repeat className="w-6 h-6 mr-2 active:transform-none active:translate-x-0 active:translate-y-0" />
+            {repeat ? `Repeats ${repeat.frequency}` : 'Set to Repeat'}
           </button>
           {onCancel && (
             <button type="button" onClick={onCancel} className="btn-secondary">
@@ -141,6 +211,65 @@ export function TaskForm({ onSubmit, onCancel, initialData, isQuickAdd = false }
           )}
         </div>
       </form>
+      <RepeatModal
+        isOpen={showRepeatModal}
+        onClose={toggleRepeatModal}
+        onRepeatChange={handleRepeatChange}
+        currentRepeat={repeat}
+      />
+    </div>
+  )
+}
+
+interface RepeatModalProps {
+  isOpen: boolean
+  onClose: () => void
+  onRepeatChange: (repeat: RepeatConfig | null) => void
+  currentRepeat: RepeatConfig | null
+}
+
+function RepeatModal({ isOpen, onClose, onRepeatChange, currentRepeat }: RepeatModalProps) {
+  const [frequency, setFrequency] = useState<RepeatFrequency>(currentRepeat?.frequency || 'daily')
+
+  if (!isOpen) return null
+
+  const handleSave = () => {
+    onRepeatChange({
+      frequency,
+      interval: 1,
+      ends: 'never',
+    })
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+      <div className="bg-white dark:bg-gray-800 p-6 rounded-lg w-96">
+        <h2 className="text-lg font-semibold mb-4">Set Repeat Options</h2>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Repeat
+            </label>
+            <select
+              value={frequency}
+              onChange={(e) => setFrequency(e.target.value as RepeatFrequency)}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-md"
+            >
+              <option value="daily">Daily</option>
+              <option value="weekly">Weekly</option>
+              <option value="monthly">Monthly</option>
+            </select>
+          </div>
+        </div>
+        <div className="flex justify-end gap-2 mt-4">
+          <button className="btn-secondary" onClick={onClose}>
+            Cancel
+          </button>
+          <button className="btn-primary" onClick={handleSave}>
+            Save
+          </button>
+        </div>
+      </div>
     </div>
   )
 }
