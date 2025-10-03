@@ -1,9 +1,9 @@
-import { CheckCircle, Clock, Target, TrendingUp } from 'lucide-react'
+import { CheckCircle, Clock, Target, TrendingUp, X } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import type { Session, Task } from '../types'
 import Calendar from './Calendar'
 import CompletedTasksModal from './CompletedTasksModal'
-import { TodaySessionsModal } from './TodaySessionsModal'
+import { SessionHistory } from './SessionHistory'
 
 /**
  * Format a Date into YYYY-MM-DD in local time (not UTC)
@@ -55,7 +55,7 @@ interface DailyReviewPanelProps {
 export default function DailyReviewPanel({ tasks, sessions, onUpdateTask, onDeleteTask, className }: DailyReviewPanelProps) {
   const [selectedDateKey, setSelectedDateKey] = useState<string>(toLocalDateKey(new Date()))
   const [showCompletedModal, setShowCompletedModal] = useState(false)
-  const [showTodaySessionsModal, setShowTodaySessionsModal] = useState(false)
+  const [showSessionsModal, setShowSessionsModal] = useState(false)
 
   const daily = useMemo(() => {
     const date = selectedDateKey
@@ -111,18 +111,18 @@ export default function DailyReviewPanel({ tasks, sessions, onUpdateTask, onDele
 
       {/* Key Metrics */}
       <div className="grid grid-cols-2 gap-3">
-        <div
-          className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 text-center border border-blue-200 dark:border-blue-800 cursor-pointer hover:shadow-md transition-shadow"
-          onClick={() => setShowTodaySessionsModal(true)}
-          title="View focus sessions"
-        >
+        <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 text-center border border-blue-200 dark:border-blue-800">
           <Clock className="w-5 h-5 text-blue-600 dark:text-blue-300 mx-auto mb-1" />
           <div className="text-lg font-bold text-blue-900 dark:text-blue-100">
             {formatDuration(daily.totalFocusMinutes)}
           </div>
           <div className="text-[11px] text-blue-700 dark:text-blue-300">Focus</div>
         </div>
-        <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-3 text-center border border-green-200 dark:border-green-800">
+        <div
+          className="bg-green-50 dark:bg-green-900/20 rounded-lg p-3 text-center border border-green-200 dark:border-green-800 cursor-pointer hover:shadow-md transition-shadow"
+          onClick={() => setShowSessionsModal(true)}
+          title="View sessions"
+        >
           <Target className="w-5 h-5 text-green-600 dark:text-green-300 mx-auto mb-1" />
           <div className="text-lg font-bold text-green-900 dark:text-green-100">
             {daily.sessionsCount}
@@ -166,31 +166,20 @@ export default function DailyReviewPanel({ tasks, sessions, onUpdateTask, onDele
         </div>
       )}
 
-      {/* Focus sessions (compact) */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-3">
-        <div className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">
-          Focus Sessions ({daily.focusSessions.length})
-        </div>
-        {daily.focusSessions.length === 0 ? (
-          <div className="text-xs text-gray-500 dark:text-gray-400">No focus sessions.</div>
-        ) : (
-          <div className="space-y-2">
-            {daily.focusSessions.slice(0, 5).map(session => (
-              <div key={session.id} className="flex items-center justify-between text-xs p-2 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
-                <div className="text-blue-900 dark:text-blue-100">
-                  {session.start_at.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {session.end_at?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </div>
-                <div className="text-blue-700 dark:text-blue-300 font-medium">
-                  {formatDuration(session.duration)}
-                </div>
-              </div>
-            ))}
-            {daily.focusSessions.length > 5 && (
-              <div className="text-[11px] text-blue-700 dark:text-blue-300">+ {daily.focusSessions.length - 5} more</div>
-            )}
+      {/* Sessions Modal */}
+      {showSessionsModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold">Today's Sessions</h2>
+              <button onClick={() => setShowSessionsModal(false)} className="text-gray-500 hover:text-gray-700">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <SessionHistory sessions={sessions} tasks={tasks} />
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Completed tasks (compact) */}
       <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-3">
@@ -230,12 +219,6 @@ export default function DailyReviewPanel({ tasks, sessions, onUpdateTask, onDele
         onMarkIncomplete={(id) => onUpdateTask(id, { status: 'todo' })}
         onDeleteForever={(id) => onDeleteTask(id)}
         onClose={() => setShowCompletedModal(false)}
-      />
-    )}
-    {showTodaySessionsModal && (
-      <TodaySessionsModal
-        isOpen={showTodaySessionsModal}
-        onClose={() => setShowTodaySessionsModal(false)}
       />
     )}
   </div>
