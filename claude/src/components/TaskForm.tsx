@@ -103,6 +103,12 @@ export function TaskForm({ onSubmit, onCancel, initialData, isQuickAdd = false }
         >
           <Repeat className="w-6 h-6 active:transform-none active:translate-x-0 active:translate-y-0" />
         </button>
+        <RepeatModal
+          isOpen={showRepeatModal}
+          onClose={toggleRepeatModal}
+          onRepeatChange={handleRepeatChange}
+          currentRepeat={repeat}
+        />
       </form>
     )
   }
