@@ -3,7 +3,6 @@ import { useEffect, useRef, useState } from 'react'
 import type { Session, Task, TaskPriority } from '../types'
 import { DailyReview } from './DailyReview'
 import DailyReviewPanel from './DailyReviewPanel'
-import { SessionHistory } from './SessionHistory'
 import { TaskList } from './TaskList'
 import { ThemeToggle } from './ThemeToggle'
 
@@ -392,10 +391,6 @@ export function TodayView({
               </p>
             </div>
           )}
-
-          {/* Session History */}
-          <SessionHistory sessions={sessions} tasks={allTasks} />
-
 
           {/* Daily Review Modal */}
           {showDailyReview && (
