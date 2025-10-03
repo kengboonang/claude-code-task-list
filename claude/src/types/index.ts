@@ -1,12 +1,21 @@
 export type TaskPriority = 'P1' | 'P2' | 'P3'
 export type TaskStatus = 'todo' | 'in_progress' | 'completed'
 export type SessionType = 'focus' | 'short_break' | 'long_break'
+export type RepeatFrequency = 'daily' | 'weekly' | 'monthly' | 'yearly'
 
 export interface Subtask {
   id: string
   title: string
   completed: boolean
   created_at: Date
+}
+
+export interface RepeatConfig {
+  frequency: RepeatFrequency
+  interval: number
+  ends: 'never' | 'on' | 'after'
+  endDate?: Date
+  occurrences?: number
 }
 
 export interface Task {
@@ -24,6 +33,8 @@ export interface Task {
   created_at: Date
   updated_at: Date
   sort_order?: number
+  deadline?: string
+  repeat?: RepeatConfig
 }
 
 export interface Session {

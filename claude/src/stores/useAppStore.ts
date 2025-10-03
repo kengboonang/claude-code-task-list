@@ -1,5 +1,10 @@
-import { useCallback, useState } from 'react'
-import type { AppState, Session, SessionType, Task, UserPrefs } from '../types'
+import { useCallback, useState } from 'react';
+import type { AppState, Session, SessionType, Task, UserPrefs } from '../types';
+
+// Extend the Session type with a new field
+type ExtendedSession = Session & {
+  timer_start_at?: Date;
+};
 
 const DEFAULT_PREFS: UserPrefs = {
   pomo_length: 25,
@@ -141,7 +146,13 @@ export function useAppStore() {
       ...prev,
       tasks: prev.tasks.map(task =>
         task.id === id
-          ? { ...task, ...updates, updated_at: new Date() }
+          ? {
+              ...task,
+              ...updates,
+              updated_at: updates.status === 'completed' && task.status !== 'completed'
+                ? new Date() // Only update timestamp when marking as completed
+                : task.updated_at
+            }
           : task
       )
     }))
@@ -181,16 +192,17 @@ export function useAppStore() {
       }
     }
 
-    const session: Session = {
+    const session: ExtendedSession = {
       id: generateId(),
       task_id: taskId || undefined, // Allow undefined for taskless sessions
-      start_at: new Date(),
+      start_at: new Date(), // This is now the session creation time, not the timer start time
       duration: 0,
       planned_duration: getPlannedDuration(),
       type,
       completed: false,
       completed_early: false,
       extended: false,
+      timer_start_at: undefined, // New field to track when the timer actually starts
     }
 
     updateState(prev => ({
@@ -204,12 +216,32 @@ export function useAppStore() {
     return session
   }, [updateState, state.userPrefs.pomo_length, state.userPrefs.short_break_length, state.userPrefs.long_break_length])
 
+  const startTimer = useCallback(() => {
+    updateState(prev => {
+      if (!prev.currentSession) return prev
+
+      const updatedSession: ExtendedSession = {
+        ...prev.currentSession,
+        timer_start_at: new Date(),
+      }
+
+      return {
+        ...prev,
+        currentSession: updatedSession,
+        sessions: prev.sessions.map(s =>
+          s.id === updatedSession.id ? updatedSession : s
+        ),
+      }
+    })
+  }, [updateState])
+
   const completeSession = useCallback((notes?: string, wasExtended?: boolean) => {
     updateState(prev => {
       if (!prev.currentSession) return prev
 
       const endTime = new Date()
-      const durationMs = endTime.getTime() - prev.currentSession.start_at.getTime()
+      const timerStartTime = (prev.currentSession as ExtendedSession).timer_start_at || prev.currentSession.start_at
+      const durationMs = endTime.getTime() - timerStartTime.getTime()
       const durationMinutes = Math.round(durationMs / 1000 / 60 * 10) / 10
       const duration = Math.max(0.1, durationMinutes)
 
@@ -245,6 +277,10 @@ export function useAppStore() {
       if (a.status === 'completed' && b.status !== 'completed') return 1
       if (a.status !== 'completed' && b.status === 'completed') return -1
 
+      // Sort by creation date (newest first)
+      const recency = b.created_at.getTime() - a.created_at.getTime()
+      if (recency !== 0) return recency
+
       // For active tasks, prefer manual sort order if set
       const aHasOrder = typeof a.sort_order === 'number'
       const bHasOrder = typeof b.sort_order === 'number'
@@ -256,8 +292,6 @@ export function useAppStore() {
       if (a.is_mit && !b.is_mit) return -1
       if (!a.is_mit && b.is_mit) return 1
 
-      const recency = b.created_at.getTime() - a.created_at.getTime()
-      if (recency !== 0) return recency
       return a.priority.localeCompare(b.priority)
     })
   }, [state.tasks])
@@ -270,9 +304,14 @@ export function useAppStore() {
     return state.tasks.find(task => task.is_mit && task.status !== 'completed')
   }, [state.tasks])
 
-  const getCompletedMIT = useCallback(() => {
-    return state.tasks.find(task => task.is_mit && task.status === 'completed')
-  }, [state.tasks])
+const getCompletedMIT = useCallback(() => {
+  const today = new Date().toDateString()
+  return state.tasks.find(task =>
+    task.is_mit &&
+    task.status === 'completed' &&
+    task.updated_at.toDateString() === today
+  )
+}, [state.tasks])
 
   const addSubtask = useCallback((taskId: string, subtaskTitle: string) => {
     const subtask = {
@@ -423,17 +462,54 @@ export function useAppStore() {
   const resetDailyData = useCallback(() => {
     updateState(prev => ({
       ...prev,
-      tasks: prev.tasks.map(task => ({
-        ...task,
-        is_mit: false,
-        status: task.status === 'completed' ? 'todo' : task.status,
-        updated_at: new Date()
-      })),
+      tasks: prev.tasks.map(task => {
+        const shouldResetRepeatingTask = task.repeat && shouldTaskRepeatToday(task)
+
+        return {
+          ...task,
+          is_mit: false,
+          // Reset repeating tasks to incomplete if they should repeat today
+          ...(shouldResetRepeatingTask && {
+            status: 'todo' as const,
+            updated_at: new Date()
+          }),
+          // Preserve completed status and updated_at for non-repeating completed tasks
+          ...(!shouldResetRepeatingTask && task.status !== 'completed' && { updated_at: new Date() })
+        }
+      }),
       currentSession: null,
       isInFocusMode: false,
       currentTaskId: null,
     }))
   }, [updateState])
+
+  const shouldTaskRepeatToday = useCallback((task: Task): boolean => {
+    if (!task.repeat || task.status !== 'completed') return false
+
+    const today = new Date()
+    const taskUpdated = new Date(task.updated_at)
+
+    switch (task.repeat.frequency) {
+      case 'daily':
+        // Reset if completed yesterday or earlier
+        return taskUpdated.toDateString() !== today.toDateString()
+
+      case 'weekly':
+        // Reset if it's been 7 days since completion
+        const daysDiff = Math.floor((today.getTime() - taskUpdated.getTime()) / (1000 * 60 * 60 * 24))
+        return daysDiff >= 7
+
+      case 'monthly':
+        // Reset if it's the same day of the month as when the task was created or last completed
+        const taskDay = taskUpdated.getDate()
+        const todayDay = today.getDate()
+        const isNewMonth = taskUpdated.getMonth() !== today.getMonth() || taskUpdated.getFullYear() !== today.getFullYear()
+        return isNewMonth && todayDay === taskDay
+
+      default:
+        return false
+    }
+  }, [])
 
   return {
     ...state,
@@ -443,6 +519,7 @@ export function useAppStore() {
     setMIT,
     startSession,
     completeSession,
+    startTimer,
     getTodayTasks,
     getActiveTodayTasks,
     getMIT,
@@ -460,4 +537,4 @@ export function useAppStore() {
 }
 
 // Export utility functions for testing
-export { shouldResetForNewDay }
+export { shouldResetForNewDay };
