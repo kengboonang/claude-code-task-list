@@ -133,7 +133,7 @@ export function TaskList({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 pr-4">
       <h2 className="text-xl font-semibold text-gray-900">{title}</h2>
 
       {showQuickAdd && (

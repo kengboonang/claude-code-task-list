@@ -459,20 +459,57 @@ const getCompletedMIT = useCallback(() => {
     localStorage.removeItem(STORAGE_KEY)
   }, [])
 
-const resetDailyData = useCallback(() => {
-  updateState(prev => ({
-    ...prev,
-    tasks: prev.tasks.map(task => ({
-      ...task,
-      is_mit: false,
-      // Preserve completed status and updated_at for completed tasks
-      ...(task.status !== 'completed' && { updated_at: new Date() })
-    })),
-    currentSession: null,
-    isInFocusMode: false,
-    currentTaskId: null,
-  }))
-}, [updateState])
+  const resetDailyData = useCallback(() => {
+    updateState(prev => ({
+      ...prev,
+      tasks: prev.tasks.map(task => {
+        const shouldResetRepeatingTask = task.repeat && shouldTaskRepeatToday(task)
+
+        return {
+          ...task,
+          is_mit: false,
+          // Reset repeating tasks to incomplete if they should repeat today
+          ...(shouldResetRepeatingTask && {
+            status: 'todo' as const,
+            updated_at: new Date()
+          }),
+          // Preserve completed status and updated_at for non-repeating completed tasks
+          ...(!shouldResetRepeatingTask && task.status !== 'completed' && { updated_at: new Date() })
+        }
+      }),
+      currentSession: null,
+      isInFocusMode: false,
+      currentTaskId: null,
+    }))
+  }, [updateState])
+
+  const shouldTaskRepeatToday = useCallback((task: Task): boolean => {
+    if (!task.repeat || task.status !== 'completed') return false
+
+    const today = new Date()
+    const taskUpdated = new Date(task.updated_at)
+
+    switch (task.repeat.frequency) {
+      case 'daily':
+        // Reset if completed yesterday or earlier
+        return taskUpdated.toDateString() !== today.toDateString()
+
+      case 'weekly':
+        // Reset if it's been 7 days since completion
+        const daysDiff = Math.floor((today.getTime() - taskUpdated.getTime()) / (1000 * 60 * 60 * 24))
+        return daysDiff >= 7
+
+      case 'monthly':
+        // Reset if it's the same day of the month as when the task was created or last completed
+        const taskDay = taskUpdated.getDate()
+        const todayDay = today.getDate()
+        const isNewMonth = taskUpdated.getMonth() !== today.getMonth() || taskUpdated.getFullYear() !== today.getFullYear()
+        return isNewMonth && todayDay === taskDay
+
+      default:
+        return false
+    }
+  }, [])
 
   return {
     ...state,

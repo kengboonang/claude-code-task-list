@@ -1,4 +1,4 @@
-import { CheckCircle, Clock, Target, TrendingUp, X } from 'lucide-react'
+import { CheckCircle, Clock, Edit, Repeat, Target, Trash2, TrendingUp, X } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import type { Session, Task } from '../types'
 import Calendar from './Calendar'
@@ -45,6 +45,7 @@ interface DailyReviewPanelProps {
   sessions: Session[]
   onUpdateTask: (id: string, updates: Partial<Task>) => void
   onDeleteTask: (id: string) => void
+  onEditTask?: (task: Task) => void
   className?: string
 }
 
@@ -52,7 +53,7 @@ interface DailyReviewPanelProps {
  * Sidebar version of DailyReview (non-modal) with a calendar on top.
  * Clicking on calendar dates switches the selected day and updates the summary.
  */
-export default function DailyReviewPanel({ tasks, sessions, onUpdateTask, onDeleteTask, className }: DailyReviewPanelProps) {
+export default function DailyReviewPanel({ tasks, sessions, onUpdateTask, onDeleteTask, onEditTask, className }: DailyReviewPanelProps) {
   const [selectedDateKey, setSelectedDateKey] = useState<string>(toLocalDateKey(new Date()))
   const [showCompletedModal, setShowCompletedModal] = useState(false)
   const [showSessionsModal, setShowSessionsModal] = useState(false)
@@ -72,6 +73,8 @@ export default function DailyReviewPanel({ tasks, sessions, onUpdateTask, onDele
       toLocalDateKey(t.updated_at) === date
     )
 
+    const repeatingTasks = tasks.filter(t => t.repeat)
+
     const plannedMinutes = focusSessions.reduce((acc, s) => acc + s.planned_duration, 0)
     const focusScore = plannedMinutes > 0 ? Math.round((totalFocusMinutes / plannedMinutes) * 100) : 0
 
@@ -80,6 +83,7 @@ export default function DailyReviewPanel({ tasks, sessions, onUpdateTask, onDele
       totalFocusMinutes: Math.round(totalFocusMinutes * 10) / 10,
       sessionsCount: focusSessions.length,
       completedTasks: completedOnDate,
+      repeatingTasks,
       focusScore,
     }
   }, [sessions, tasks, selectedDateKey])
@@ -98,15 +102,87 @@ export default function DailyReviewPanel({ tasks, sessions, onUpdateTask, onDele
       </div>
 
       {/* Scrollable content */}
-      <div className="flex-1 min-h-0 overflow-y-auto space-y-4">
-        {/* Selected day header */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+      <div className="flex-1 min-h-0 overflow-y-auto space-y-4 pr-4">
+      {/* Selected day header */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Daily Review</h3>
             <p className="text-xs text-gray-600 dark:text-gray-400">{formatHumanDate(selectedDateKey)}{isToday ? ' • Today' : ''}</p>
           </div>
         </div>
+      </div>
+
+      {/* Repeating Tasks */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-3">
+        <div className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">
+          Repeating Tasks ({daily.repeatingTasks.length})
+        </div>
+        {daily.repeatingTasks.length === 0 ? (
+          <div className="text-xs text-gray-500 dark:text-gray-400">No repeating tasks.</div>
+        ) : (
+          <div className="space-y-1">
+            {daily.repeatingTasks.slice(0, 5).map(task => (
+              <div key={task.id} className="flex items-center gap-2 text-xs p-1.5 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+                {task.status === 'completed' ? (
+                  <CheckCircle className="w-3.5 h-3.5 text-green-600 dark:text-green-300 flex-shrink-0" />
+                ) : (
+                  <Repeat className="w-3.5 h-3.5 text-gray-600 dark:text-gray-300 flex-shrink-0" />
+                )}
+                <div className="flex-1 min-w-0">
+                  <div className={`truncate font-medium ${
+                    task.status === 'completed'
+                      ? 'text-gray-900 dark:text-gray-100 line-through'
+                      : 'text-gray-900 dark:text-gray-100'
+                  }`}>
+                    {task.title}
+                  </div>
+                  <div className="text-[10px] text-gray-700 dark:text-gray-300">
+                    Repeats {task.repeat?.frequency}
+                    {task.status === 'completed' && ' • Completed'}
+                  </div>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className={`px-1 py-0.5 text-[10px] font-medium rounded ${
+                    task.priority === 'P1' ? 'bg-red-100 text-red-800' :
+                    task.priority === 'P2' ? 'bg-yellow-100 text-yellow-800' :
+                    'bg-green-100 text-green-800'
+                  }`}>
+                    {task.priority}
+                  </span>
+                  {task.status !== 'completed' && (
+                    <button
+                      onClick={() => onUpdateTask(task.id, { status: 'completed' })}
+                      className="p-1 text-gray-600 dark:text-gray-300 hover:text-green-600 dark:hover:text-green-400 rounded"
+                      title="Mark complete"
+                    >
+                      <CheckCircle className="w-3 h-3" />
+                    </button>
+                  )}
+                  {onEditTask && (
+                    <button
+                      onClick={() => onEditTask(task)}
+                      className="p-1 text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100 rounded"
+                      title="Edit task"
+                    >
+                      <Edit className="w-3 h-3" />
+                    </button>
+                  )}
+                  <button
+                    onClick={() => onDeleteTask(task.id)}
+                    className="p-1 text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 rounded"
+                    title="Delete task"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </button>
+                </div>
+              </div>
+            ))}
+            {daily.repeatingTasks.length > 5 && (
+              <div className="text-[11px] text-gray-700 dark:text-gray-300">+ {daily.repeatingTasks.length - 5} more</div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Key Metrics */}
@@ -119,26 +195,26 @@ export default function DailyReviewPanel({ tasks, sessions, onUpdateTask, onDele
           <div className="text-[11px] text-blue-700 dark:text-blue-300">Focus</div>
         </div>
         <div
-          className="bg-green-50 dark:bg-green-900/20 rounded-lg p-3 text-center border border-green-200 dark:border-green-800 cursor-pointer hover:shadow-md transition-shadow"
+          className="bg-red-50 dark:bg-red-900/20 rounded-lg p-3 text-center border border-red-200 dark:border-red-800 cursor-pointer hover:shadow-md transition-shadow"
           onClick={() => setShowSessionsModal(true)}
           title="View sessions"
         >
-          <Target className="w-5 h-5 text-green-600 dark:text-green-300 mx-auto mb-1" />
-          <div className="text-lg font-bold text-green-900 dark:text-green-100">
+          <Target className="w-5 h-5 text-red-600 dark:text-red-300 mx-auto mb-1" />
+          <div className="text-lg font-bold text-red-900 dark:text-red-100">
             {daily.sessionsCount}
           </div>
-          <div className="text-[11px] text-green-700 dark:text-green-300">Sessions</div>
+          <div className="text-[11px] text-red-700 dark:text-red-300">Sessions</div>
         </div>
         <div
-          className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-3 text-center border border-purple-200 dark:border-purple-800 cursor-pointer hover:shadow-md transition-shadow"
+          className="bg-green-50 dark:bg-green-900/20 rounded-lg p-3 text-center border border-green-200 dark:border-green-800 cursor-pointer hover:shadow-md transition-shadow"
           onClick={() => setShowCompletedModal(true)}
           title="View completed tasks"
         >
-          <CheckCircle className="w-5 h-5 text-purple-600 dark:text-purple-300 mx-auto mb-1" />
-          <div className="text-lg font-bold text-purple-900 dark:text-purple-100">
+          <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-300 mx-auto mb-1" />
+          <div className="text-lg font-bold text-green-900 dark:text-green-100">
             {daily.completedTasks.length}
           </div>
-          <div className="text-[11px] text-purple-700 dark:text-purple-300">Tasks Done</div>
+          <div className="text-[11px] text-green-700 dark:text-green-300">Tasks Done</div>
         </div>
         <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded-lg p-3 text-center border border-yellow-200 dark:border-yellow-800">
           <TrendingUp className="w-5 h-5 text-yellow-600 dark:text-yellow-300 mx-auto mb-1" />
@@ -214,6 +290,7 @@ export default function DailyReviewPanel({ tasks, sessions, onUpdateTask, onDele
           </div>
         )}
       </div>
+
     </div>
     {showCompletedModal && (
       <CompletedTasksModal
