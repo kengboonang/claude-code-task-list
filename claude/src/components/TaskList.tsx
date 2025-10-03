@@ -145,8 +145,7 @@ export function TaskList({
 
       <div className="space-y-3">
         {tasks.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">
-            <p>No tasks yet. Add one above to get started!</p>
+          <div>
           </div>
         ) : (
           tasks.map(task => (
