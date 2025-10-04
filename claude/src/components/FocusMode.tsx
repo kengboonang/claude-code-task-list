@@ -1,8 +1,99 @@
-import { CheckCircle, StopCircle, X } from 'lucide-react'
+import { CheckCircle, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import type { SessionType, Task, UserPrefs } from '../types'
 import { PomodoroTimer } from './PomodoroTimer'
 import { SubtaskList } from './SubtaskList'
+
+// Task Notes Component
+interface TaskNotesComponentProps {
+  task: Task
+  onTaskNotesUpdate: (notes: string) => void
+}
+
+function TaskNotesComponent({ task, onTaskNotesUpdate }: TaskNotesComponentProps) {
+  const [editableNotes, setEditableNotes] = useState(task.notes || '')
+  const [isEditingNotes, setIsEditingNotes] = useState(false)
+
+  // Update editableNotes when task.notes changes
+  useEffect(() => {
+    setEditableNotes(task.notes || '')
+  }, [task.notes])
+
+  return (
+    <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+      <div className="flex items-center justify-between mb-2">
+        <h4 className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Task Notes</h4>
+        <button
+          onClick={() => {
+            if (isEditingNotes) {
+              onTaskNotesUpdate(editableNotes)
+              setIsEditingNotes(false)
+            } else {
+              setIsEditingNotes(true)
+            }
+          }}
+          className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
+        >
+          {isEditingNotes ? 'Save' : 'Edit'}
+        </button>
+      </div>
+
+      {isEditingNotes ? (
+        <textarea
+          value={editableNotes}
+          onChange={(e) => setEditableNotes(e.target.value)}
+          placeholder="Add notes about this task..."
+          className="w-full px-2 py-2 text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 rounded focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-transparent resize-none"
+          rows={3}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+              onTaskNotesUpdate(editableNotes)
+              setIsEditingNotes(false)
+            } else if (e.key === 'Escape') {
+              setEditableNotes(task.notes || '')
+              setIsEditingNotes(false)
+            }
+          }}
+          autoFocus
+        />
+      ) : (
+        <div
+          className="text-sm text-gray-600 dark:text-gray-300 min-h-[3rem] cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 rounded p-1 transition-colors"
+          onClick={() => setIsEditingNotes(true)}
+        >
+          {editableNotes || (
+            <span className="text-gray-400 dark:text-gray-500 italic">
+              Click to add notes about this task...
+            </span>
+          )}
+        </div>
+      )}
+
+      {isEditingNotes && (
+        <div className="flex justify-end gap-2 mt-2">
+          <button
+            onClick={() => {
+              setEditableNotes(task.notes || '')
+              setIsEditingNotes(false)
+            }}
+            className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={() => {
+              onTaskNotesUpdate(editableNotes)
+              setIsEditingNotes(false)
+            }}
+            className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium"
+          >
+            Save (Ctrl+Enter)
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
 
 interface FocusModeProps {
   task: Task | null
@@ -15,6 +106,7 @@ interface FocusModeProps {
   onAddSubtask?: (taskId: string, title: string) => void
   onUpdateSubtask?: (taskId: string, subtaskId: string, updates: { title?: string, completed?: boolean }) => void
   onDeleteSubtask?: (taskId: string, subtaskId: string) => void
+  onUpdateTask?: (taskId: string, updates: { notes?: string }) => void
   startTimer: () => void
 }
 
@@ -29,6 +121,7 @@ export function FocusMode({
   onAddSubtask,
   onUpdateSubtask,
   onDeleteSubtask,
+  onUpdateTask,
   startTimer
 }: FocusModeProps) {
   const [showCancelConfirm, setShowCancelConfirm] = useState(false)
@@ -36,6 +129,12 @@ export function FocusMode({
   const handleTaskComplete = () => {
     if (task && onTaskComplete) {
       onTaskComplete(task.id)
+    }
+  }
+
+  const handleTaskNotesUpdate = (notes: string) => {
+    if (task && onUpdateTask) {
+      onUpdateTask(task.id, { notes })
     }
   }
 
@@ -88,25 +187,55 @@ export function FocusMode({
               {sessionType === 'focus' && (
                 <div className="flex items-center justify-between">
                   <p className="text-gray-600 dark:text-gray-400">Stay focused on your current task</p>
-                  <button
-                    onClick={() => setShowCancelConfirm(true)}
-                    className="flex items-center gap-2 px-3 py-1 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors ml-4"
-                    title="Cancel session and return to main page"
-                  >
-                    <StopCircle className="w-3 h-3" />
-                    Cancel Session
-                  </button>
+                  <div className="relative group ml-4">
+                    <button
+                      className="flex items-center gap-2 px-3 py-1 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                      title="Focus Tips"
+                    >
+                      💡 Tips
+                    </button>
+                    <div className="absolute right-0 top-full mt-2 w-80 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-4 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
+                      <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-2">Focus Tips</h4>
+                      <ul className="text-sm space-y-1 text-gray-600 dark:text-gray-400">
+                        <li>• Close unnecessary browser tabs and applications</li>
+                        <li>• Put your phone in another room or use Do Not Disturb</li>
+                        <li>• If distracted, jot down the thought and return to your task</li>
+                        <li>• Stay hydrated and maintain good posture</li>
+                      </ul>
+                    </div>
+                  </div>
                 </div>
               )}
               {sessionType !== 'focus' && (
-                <button
-                  onClick={() => setShowCancelConfirm(true)}
-                  className="flex items-center gap-2 px-3 py-1 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors mt-2"
-                  title="Cancel session and return to main page"
-                >
-                  <StopCircle className="w-3 h-3" />
-                  Cancel Session
-                </button>
+                <div className="relative group mt-2">
+                  <button
+                    className="flex items-center gap-2 px-3 py-1 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                    title="Break Ideas"
+                  >
+                    💡 Tips
+                  </button>
+                  <div className="absolute right-0 top-full mt-2 w-80 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-4 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
+                    <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-2">Break Ideas</h4>
+                    <ul className="text-sm space-y-1 text-gray-600 dark:text-gray-400">
+                      {sessionType === 'short_break' ? (
+                        <>
+                          <li>• Stand up and stretch</li>
+                          <li>• Look out the window or at something far away</li>
+                          <li>• Do some deep breathing exercises</li>
+                          <li>• Grab a glass of water</li>
+                        </>
+                      ) : (
+                        <>
+                          <li>• Take a walk outside</li>
+                          <li>• Have a healthy snack</li>
+                          <li>• Do some light exercise or yoga</li>
+                          <li>• Chat with a friend or colleague</li>
+                          <li>• Listen to music or a podcast</li>
+                        </>
+                      )}
+                    </ul>
+                  </div>
+                </div>
               )}
             </div>
 
@@ -122,11 +251,11 @@ export function FocusMode({
           {/* Current Task Info or Break Message */}
           {sessionType === 'focus' ? (
             <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-lg">
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  {task ? (
-                    <>
-                      <div className="flex items-center gap-2 mb-2">
+              <div className="flex-1">
+                {task ? (
+                  <>
+                    <div className="flex items-center justify-between gap-2 mb-2">
+                      <div className="flex items-center gap-2">
                         <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">{task.title}</h2>
                         {task.is_mit && (
                           <span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs font-medium rounded-full">
@@ -142,69 +271,71 @@ export function FocusMode({
                         </span>
                       </div>
 
-                      {task.notes && (
-                        <p className="text-gray-600 dark:text-gray-400 mb-3">{task.notes}</p>
+                      <button
+                        onClick={handleTaskComplete}
+                        className="flex items-center gap-2 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                        title="Mark task as complete"
+                      >
+                        <CheckCircle className="w-4 h-4" />
+                        Complete
+                      </button>
+                    </div>
+
+                    {task.notes && (
+                      <p className="text-gray-600 dark:text-gray-400 mb-3">{task.notes}</p>
+                    )}
+
+                    <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
+                      {task.estimate_pomos && (
+                        <span>Estimated: {task.estimate_pomos} pomodoros</span>
                       )}
-
-                      <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
-                        {task.estimate_pomos && (
-                          <span>Estimated: {task.estimate_pomos} pomodoros</span>
-                        )}
-                        {task.tags.length > 0 && (
-                          <div className="flex gap-1">
-                            {task.tags.map(tag => (
-                              <span key={tag} className="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-full text-xs">
-                                {tag}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Subtasks */}
-                      {onUpdateSubtask && (
-                        <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-                          <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            {task.subtasks.length > 0 ? 'Subtasks Progress' : 'Break this task down'}
-                          </h3>
-                          <SubtaskList
-                            taskId={task.id}
-                            subtasks={task.subtasks}
-                            onAddSubtask={onAddSubtask || (() => {})}
-                            onUpdateSubtask={onUpdateSubtask}
-                            onDeleteSubtask={onDeleteSubtask || (() => {})}
-                            readonly={false}
-                          />
+                      {task.tags.length > 0 && (
+                        <div className="flex gap-1">
+                          {task.tags.map(tag => (
+                            <span key={tag} className="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-full text-xs">
+                              {tag}
+                            </span>
+                          ))}
                         </div>
                       )}
-                    </>
-                  ) : (
-                    <>
-                      <div className="flex items-center gap-2 mb-2">
-                        <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Quick Focus Session</h2>
-                        <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full">
-                          General Work
-                        </span>
+                    </div>
+
+                    {/* Subtasks */}
+                    {onUpdateSubtask && (
+                      <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                        <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          {task.subtasks.length > 0 ? 'Subtasks Progress' : 'Break this task down'}
+                        </h3>
+                        <SubtaskList
+                          taskId={task.id}
+                          subtasks={task.subtasks}
+                          onAddSubtask={onAddSubtask || (() => {})}
+                          onUpdateSubtask={onUpdateSubtask}
+                          onDeleteSubtask={onDeleteSubtask || (() => {})}
+                          readonly={false}
+                        />
                       </div>
+                    )}
 
-                      <p className="text-gray-600 dark:text-gray-400 mb-3">
-                        Focus on whatever needs your attention right now. Use this time for planning, organizing, or any task that comes to mind.
-                      </p>
-                    </>
-                  )}
-                </div>
+                    {/* Task Notes */}
+                    <TaskNotesComponent
+                      task={task}
+                      onTaskNotesUpdate={handleTaskNotesUpdate}
+                    />
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-center gap-2 mb-2">
+                      <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Quick Focus Session</h2>
+                      <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full">
+                        General Work
+                      </span>
+                    </div>
 
-                {task && (
-                  <div className="flex gap-2 ml-4">
-                    <button
-                      onClick={handleTaskComplete}
-                      className="flex items-center gap-2 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-                      title="Mark task as complete"
-                    >
-                      <CheckCircle className="w-4 h-4" />
-                      Complete
-                    </button>
-                  </div>
+                    <p className="text-gray-600 dark:text-gray-400 mb-3">
+                      Focus on whatever needs your attention right now. Use this time for planning, organizing, or any task that comes to mind.
+                    </p>
+                  </>
                 )}
               </div>
             </div>
@@ -221,42 +352,6 @@ export function FocusMode({
             </div>
           )}
 
-          {/* Focus/Break Tips */}
-          <div className="mt-6 bg-white dark:bg-gray-800 rounded-lg p-4 shadow-lg">
-            {sessionType === 'focus' ? (
-              <>
-                <h3 className="font-medium text-gray-900 dark:text-gray-100 mb-2">Focus Tips</h3>
-                <ul className="text-sm space-y-1 text-gray-600 dark:text-gray-400">
-                  <li>• Close unnecessary browser tabs and applications</li>
-                  <li>• Put your phone in another room or use Do Not Disturb</li>
-                  <li>• If distracted, jot down the thought and return to your task</li>
-                  <li>• Stay hydrated and maintain good posture</li>
-                </ul>
-              </>
-            ) : (
-              <>
-                <h3 className="font-medium text-gray-900 dark:text-gray-100 mb-2">Break Ideas</h3>
-                <ul className="text-sm space-y-1 text-gray-600 dark:text-gray-400">
-                  {sessionType === 'short_break' ? (
-                    <>
-                      <li>• Stand up and stretch</li>
-                      <li>• Look out the window or at something far away</li>
-                      <li>• Do some deep breathing exercises</li>
-                      <li>• Grab a glass of water</li>
-                    </>
-                  ) : (
-                    <>
-                      <li>• Take a walk outside</li>
-                      <li>• Have a healthy snack</li>
-                      <li>• Do some light exercise or yoga</li>
-                      <li>• Chat with a friend or colleague</li>
-                      <li>• Listen to music or a podcast</li>
-                    </>
-                  )}
-                </ul>
-              </>
-            )}
-          </div>
 
         </div>
       </div>

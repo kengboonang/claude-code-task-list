@@ -172,6 +172,7 @@ function App() {
           onAddSubtask={addSubtask}
           onUpdateSubtask={updateSubtask}
           onDeleteSubtask={deleteSubtask}
+          onUpdateTask={updateTask}
           startTimer={startTimer}
         />
       ) : (
