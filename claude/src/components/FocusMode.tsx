@@ -1,4 +1,4 @@
-import { CheckCircle, MoreHorizontal, StopCircle, X } from 'lucide-react'
+import { CheckCircle, StopCircle, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import type { SessionType, Task, UserPrefs } from '../types'
 import { PomodoroTimer } from './PomodoroTimer'
@@ -53,12 +53,15 @@ export function FocusMode({
         } else {
           setShowCancelConfirm(true)
         }
+      } else if (event.key === 'Enter' && (event.ctrlKey || event.metaKey) && task) {
+        event.preventDefault()
+        handleTaskComplete()
       }
     }
 
     window.addEventListener('keydown', handleKeyPress)
     return () => window.removeEventListener('keydown', handleKeyPress)
-  }, [showCancelConfirm])
+  }, [showCancelConfirm, task, handleTaskComplete])
 
   return (
     <div className="fixed inset-0 bg-gray-50 dark:bg-gray-900 z-50 flex items-center justify-center p-4">
@@ -74,41 +77,6 @@ export function FocusMode({
             taskTitle={task?.title}
             startTimer={startTimer}
           />
-
-          {/* Focus/Break Tips */}
-          {sessionType === 'focus' ? (
-            <div className="mt-8 card">
-              <h3 className="font-medium text-gray-900 dark:text-gray-100 mb-2">Focus Tips</h3>
-              <ul className="text-sm space-y-1 text-gray-600 dark:text-gray-400">
-                <li>• Close unnecessary browser tabs and applications</li>
-                <li>• Put your phone in another room or use Do Not Disturb</li>
-                <li>• If distracted, jot down the thought and return to your task</li>
-                <li>• Stay hydrated and maintain good posture</li>
-              </ul>
-            </div>
-          ) : (
-            <div className="mt-8 card">
-              <h3 className="font-medium text-gray-900 dark:text-gray-100 mb-2">Break Ideas</h3>
-              <ul className="text-sm space-y-1 text-gray-600 dark:text-gray-400">
-                {sessionType === 'short_break' ? (
-                  <>
-                    <li>• Stand up and stretch</li>
-                    <li>• Look out the window or at something far away</li>
-                    <li>• Do some deep breathing exercises</li>
-                    <li>• Grab a glass of water</li>
-                  </>
-                ) : (
-                  <>
-                    <li>• Take a walk outside</li>
-                    <li>• Have a healthy snack</li>
-                    <li>• Do some light exercise or yoga</li>
-                    <li>• Chat with a friend or colleague</li>
-                    <li>• Listen to music or a podcast</li>
-                  </>
-                )}
-              </ul>
-            </div>
-          )}
         </div>
 
         {/* Right Panel - Progress Card and Title */}
@@ -236,10 +204,6 @@ export function FocusMode({
                       <CheckCircle className="w-4 h-4" />
                       Complete
                     </button>
-
-                    <button className="p-2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-                      <MoreHorizontal className="w-4 h-4" />
-                    </button>
                   </div>
                 )}
               </div>
@@ -256,6 +220,44 @@ export function FocusMode({
               </p>
             </div>
           )}
+
+          {/* Focus/Break Tips */}
+          <div className="mt-6 bg-white dark:bg-gray-800 rounded-lg p-4 shadow-lg">
+            {sessionType === 'focus' ? (
+              <>
+                <h3 className="font-medium text-gray-900 dark:text-gray-100 mb-2">Focus Tips</h3>
+                <ul className="text-sm space-y-1 text-gray-600 dark:text-gray-400">
+                  <li>• Close unnecessary browser tabs and applications</li>
+                  <li>• Put your phone in another room or use Do Not Disturb</li>
+                  <li>• If distracted, jot down the thought and return to your task</li>
+                  <li>• Stay hydrated and maintain good posture</li>
+                </ul>
+              </>
+            ) : (
+              <>
+                <h3 className="font-medium text-gray-900 dark:text-gray-100 mb-2">Break Ideas</h3>
+                <ul className="text-sm space-y-1 text-gray-600 dark:text-gray-400">
+                  {sessionType === 'short_break' ? (
+                    <>
+                      <li>• Stand up and stretch</li>
+                      <li>• Look out the window or at something far away</li>
+                      <li>• Do some deep breathing exercises</li>
+                      <li>• Grab a glass of water</li>
+                    </>
+                  ) : (
+                    <>
+                      <li>• Take a walk outside</li>
+                      <li>• Have a healthy snack</li>
+                      <li>• Do some light exercise or yoga</li>
+                      <li>• Chat with a friend or colleague</li>
+                      <li>• Listen to music or a podcast</li>
+                    </>
+                  )}
+                </ul>
+              </>
+            )}
+          </div>
+
         </div>
       </div>
 

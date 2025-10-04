@@ -7,6 +7,7 @@ interface TimerControls {
   stop: () => void
   reset: () => void
   extend: (minutes: number) => void
+  reduce: (minutes: number) => void
   snooze: (seconds: number) => void
   isRunning: boolean
   isPaused: boolean
@@ -19,11 +20,11 @@ interface UseTimerKeyboardOptions {
   enabled?: boolean
 }
 
-export function useTimerKeyboard({ 
-  timerControls, 
-  onComplete, 
-  onCancel, 
-  enabled = true 
+export function useTimerKeyboard({
+  timerControls,
+  onComplete,
+  onCancel,
+  enabled = true
 }: UseTimerKeyboardOptions) {
   const shortcutsRef = useRef<HTMLDivElement>(null)
 
@@ -41,7 +42,7 @@ export function useTimerKeyboard({
       }
 
       // Prevent default for our handled keys
-      const handled = ['Space', 'Enter', 'KeyR', 'KeyS', 'KeyP', 'Escape', 'Equal', 'Minus']
+      const handled = ['Space', 'Enter', 'KeyR', 'Equal', 'Minus']
       if (handled.includes(event.code)) {
         event.preventDefault()
       }
@@ -58,13 +59,6 @@ export function useTimerKeyboard({
           }
           break
 
-        case 'KeyS':
-          // 'S': Stop timer
-          if (timerControls.isRunning || timerControls.isPaused) {
-            timerControls.stop()
-          }
-          break
-
         case 'KeyR':
           // 'R': Reset timer
           timerControls.reset()
@@ -72,29 +66,18 @@ export function useTimerKeyboard({
 
         case 'Equal':
           // '+': Extend timer by 1 minute
-          if (timerControls.isRunning || timerControls.isPaused) {
-            timerControls.extend(1)
-          }
+          timerControls.extend(1)
           break
 
         case 'Minus':
-          // '-': Snooze timer by 60 seconds
-          if (timerControls.isRunning || timerControls.isPaused) {
-            timerControls.snooze(60)
-          }
+          // '-': Reduce timer by 1 minute
+          timerControls.reduce(1)
           break
 
         case 'Enter':
-          // Enter: Complete session
+          // Enter: Set custom time
           if (onComplete) {
             onComplete()
-          }
-          break
-
-        case 'Escape':
-          // Escape: Cancel/Exit
-          if (onCancel) {
-            onCancel()
           }
           break
 
@@ -109,12 +92,10 @@ export function useTimerKeyboard({
 
   const shortcuts = [
     { key: 'Space', description: 'Start/Pause/Resume timer' },
-    { key: 'S', description: 'Stop timer' },
     { key: 'R', description: 'Reset timer' },
     { key: '+', description: 'Extend timer (+1 min)' },
-    { key: '-', description: 'Snooze timer (+1 min)' },
-    { key: 'Enter', description: 'Complete session' },
-    { key: 'Esc', description: 'Cancel session' },
+    { key: '-', description: 'Reduce timer (-1 min)' },
+    { key: 'Enter', description: 'Set custom time' },
   ]
 
   return { shortcuts, shortcutsRef }

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 export interface TimerState {
   minutes: number
@@ -57,6 +57,12 @@ export function useTimer(initialMinutes: number = 25) {
     setRemainingSeconds(prev => prev + extraSeconds)
   }, [])
 
+  const reduce = useCallback((reduceMinutes: number) => {
+    const reduceSeconds = reduceMinutes * 60
+    setTotalSeconds(prev => Math.max(60, prev - reduceSeconds)) // Minimum 1 minute
+    setRemainingSeconds(prev => Math.max(60, prev - reduceSeconds)) // Minimum 1 minute
+  }, [])
+
   const snooze = useCallback((snoozeSeconds: number) => {
     // Guardrails: 30-120 seconds
     const clampedSeconds = Math.max(30, Math.min(120, snoozeSeconds))
@@ -109,6 +115,7 @@ export function useTimer(initialMinutes: number = 25) {
     stop,
     reset,
     extend,
+    reduce,
     snooze,
     onComplete,
     progress: totalSeconds > 0 ? (totalSeconds - remainingSeconds) / totalSeconds : 0,

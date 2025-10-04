@@ -1,4 +1,4 @@
-import { Clock, Keyboard, Pause, Play, Plus, RotateCcw, Square } from 'lucide-react'
+import { Clock, Pause, Play, Plus, RotateCcw, Square } from 'lucide-react'
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useState } from 'react'
 import { useTimer } from '../hooks/useTimer'
 import { useTimerKeyboard } from '../hooks/useTimerKeyboard'
@@ -35,14 +35,14 @@ export const PomodoroTimer = forwardRef<PomodoroTimerRef, PomodoroTimerProps>(({
   taskTitle,
   startTimer
 }, ref) => {
-  const [sessionNotes, setSessionNotes] = useState('')
-  const [showNotes, setShowNotes] = useState(false)
   const [hasStarted, setHasStarted] = useState(false)
-  const [completeTaskWhenDone, setCompleteTaskWhenDone] = useState(false)
   const [showSnoozeOptions, setShowSnoozeOptions] = useState(false)
   const [showCompletionOptions, setShowCompletionOptions] = useState(false)
   const [newSubtaskTitle, setNewSubtaskTitle] = useState('')
-  const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false)
+  const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(true)
+  const [customMinutes, setCustomMinutes] = useState('')
+  const [customSeconds, setCustomSeconds] = useState('')
+  const [isCustomTimeFocused, setIsCustomTimeFocused] = useState(false)
 
   const getSessionLength = () => {
     switch (sessionType) {
@@ -76,6 +76,7 @@ export const PomodoroTimer = forwardRef<PomodoroTimerRef, PomodoroTimerProps>(({
     stop: timer.stop,
     reset: () => timer.reset(),
     extend: timer.extend,
+    reduce: timer.reduce,
     snooze: timer.snooze,
     isRunning: timer.isRunning,
     isPaused: timer.isPaused,
@@ -85,22 +86,21 @@ export const PomodoroTimer = forwardRef<PomodoroTimerRef, PomodoroTimerProps>(({
   const { shortcuts } = useTimerKeyboard({
     timerControls,
     onComplete: () => {
-      if (timer.isCompleted || hasStarted || timer.isRunning || timer.isPaused) {
-        if (!showCompletionOptions) {
-          setShowCompletionOptions(true)
-        } else {
-          handleComplete()
+      // Handle Enter key for custom time input focus
+      if (!customMinutes && !customSeconds) {
+        // If no inputs, focus on minutes field
+        const minutesInput = document.querySelector('input[data-custom-minutes]') as HTMLInputElement
+        if (minutesInput) {
+          minutesInput.focus()
+          setIsCustomTimeFocused(true)
         }
-      }
-    },
-    onCancel: () => {
-      // Close any open menus first, then handle exit
-      if (showCompletionOptions) {
-        setShowCompletionOptions(false)
-      } else if (showSnoozeOptions) {
-        setShowSnoozeOptions(false)
-      } else if (showKeyboardShortcuts) {
-        setShowKeyboardShortcuts(false)
+      } else if (isCustomTimeFocused) {
+        // If inputs have values and are focused, blur them
+        const activeElement = document.activeElement as HTMLInputElement
+        if (activeElement && (activeElement.dataset.customMinutes || activeElement.dataset.customSeconds)) {
+          activeElement.blur()
+          setIsCustomTimeFocused(false)
+        }
       }
     },
     enabled: true
@@ -230,31 +230,47 @@ export const PomodoroTimer = forwardRef<PomodoroTimerRef, PomodoroTimerProps>(({
   }, [timer, playCompletionSound, showCompletionNotification])
 
   const handleComplete = () => {
-    onSessionComplete(sessionNotes || undefined, completeTaskWhenDone)
+    onSessionComplete()
     resetState()
   }
 
   const handleContinueSession = () => {
-    onSessionComplete(sessionNotes || undefined, false, true)
+    onSessionComplete(undefined, false, true)
     resetState()
   }
 
   const handleAddSubtaskAndComplete = () => {
     if (newSubtaskTitle.trim()) {
-      onSessionComplete(sessionNotes || undefined, false, false, newSubtaskTitle.trim())
+      onSessionComplete(undefined, false, false, newSubtaskTitle.trim())
     }
     resetState()
   }
 
   const resetState = () => {
-    setSessionNotes('')
-    setShowNotes(false)
     setHasStarted(false)
-    setCompleteTaskWhenDone(false)
     setShowCompletionOptions(false)
     setNewSubtaskTitle('')
-    setShowKeyboardShortcuts(false)
+    setShowKeyboardShortcuts(true)
     setShowSnoozeOptions(false)
+    setIsCustomTimeFocused(false)
+  }
+
+  const handleCustomTimeSubmit = () => {
+    const minutes = parseInt(customMinutes) || 0
+    const seconds = parseInt(customSeconds) || 0
+    const totalMinutes = minutes + (seconds / 60)
+
+    if (totalMinutes > 0 && totalMinutes <= 999 && seconds < 60) {
+      timer.reset(totalMinutes)
+      setCustomMinutes('')
+      setCustomSeconds('')
+      setIsCustomTimeFocused(false)
+      // Blur the active input
+      const activeElement = document.activeElement as HTMLInputElement
+      if (activeElement && (activeElement.dataset.customMinutes || activeElement.dataset.customSeconds)) {
+        activeElement.blur()
+      }
+    }
   }
 
   const formatTime = (minutes: number, seconds: number) => {
@@ -386,28 +402,6 @@ export const PomodoroTimer = forwardRef<PomodoroTimerRef, PomodoroTimerProps>(({
                 <Clock className="w-3 h-3" />
                 Snooze
               </button>
-
-              <button
-                onClick={() => setShowKeyboardShortcuts(!showKeyboardShortcuts)}
-                className="btn btn-outline text-sm flex items-center gap-1"
-                title="Keyboard shortcuts"
-              >
-                <Keyboard className="w-3 h-3" />
-              </button>
-            </div>
-          )}
-
-          {/* Keyboard shortcut button when timer is not active */}
-          {!timer.isRunning && !timer.isPaused && (
-            <div className="flex justify-center">
-              <button
-                onClick={() => setShowKeyboardShortcuts(!showKeyboardShortcuts)}
-                className="btn btn-outline text-sm flex items-center gap-1"
-                title="Keyboard shortcuts"
-              >
-                <Keyboard className="w-3 h-3" />
-                Shortcuts
-              </button>
             </div>
           )}
         </div>
@@ -460,64 +454,96 @@ export const PomodoroTimer = forwardRef<PomodoroTimerRef, PomodoroTimerProps>(({
           </div>
         )}
 
-        {/* Keyboard Shortcuts */}
-        {showKeyboardShortcuts && (
-          <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 mb-4">
-            <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Keyboard Shortcuts</h4>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
-              {shortcuts.map(shortcut => (
-                <div key={shortcut.key} className="flex items-center justify-between py-1">
-                  <span className="text-gray-600 dark:text-gray-400">{shortcut.description}</span>
-                  <kbd className="px-2 py-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-xs font-mono dark:text-gray-300">
-                    {shortcut.key}
-                  </kbd>
-                </div>
-              ))}
+        {/* Custom Time Input - Always Visible */}
+        <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 mb-4">
+          <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Set Custom Timer Duration</h4>
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <div className="flex-1">
+                <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Minutes</label>
+                <input
+                  type="number"
+                  value={customMinutes}
+                  onChange={(e) => setCustomMinutes(e.target.value)}
+                  placeholder="0"
+                  min="0"
+                  max="999"
+                  data-custom-minutes="true"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent text-center font-mono"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      handleCustomTimeSubmit()
+                    }
+                  }}
+                  onFocus={() => setIsCustomTimeFocused(true)}
+                  onBlur={() => {
+                    // Only set to false if neither input is focused
+                    setTimeout(() => {
+                      const minutesInput = document.querySelector('input[data-custom-minutes]') as HTMLInputElement
+                      const secondsInput = document.querySelector('input[data-custom-seconds]') as HTMLInputElement
+                      if (document.activeElement !== minutesInput && document.activeElement !== secondsInput) {
+                        setIsCustomTimeFocused(false)
+                      }
+                    }, 0)
+                  }}
+                />
+              </div>
+              <div className="text-gray-400 dark:text-gray-500 font-bold text-lg pt-5">:</div>
+              <div className="flex-1">
+                <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Seconds</label>
+                <input
+                  type="number"
+                  value={customSeconds}
+                  onChange={(e) => setCustomSeconds(e.target.value)}
+                  placeholder="0"
+                  min="0"
+                  max="59"
+                  data-custom-seconds="true"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent text-center font-mono"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      handleCustomTimeSubmit()
+                    }
+                  }}
+                  onFocus={() => setIsCustomTimeFocused(true)}
+                  onBlur={() => {
+                    // Only set to false if neither input is focused
+                    setTimeout(() => {
+                      const minutesInput = document.querySelector('input[data-custom-minutes]') as HTMLInputElement
+                      const secondsInput = document.querySelector('input[data-custom-seconds]') as HTMLInputElement
+                      if (document.activeElement !== minutesInput && document.activeElement !== secondsInput) {
+                        setIsCustomTimeFocused(false)
+                      }
+                    }, 0)
+                  }}
+                />
+              </div>
             </div>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-3">
-              These shortcuts work when the timer is focused (not when typing in text fields)
-            </p>
-          </div>
-        )}
-
-        {/* Session Notes */}
-        {hasStarted && (
-          <div className="text-left">
             <button
-              onClick={() => setShowNotes(!showNotes)}
-              className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 mb-2"
+              onClick={handleCustomTimeSubmit}
+              disabled={((parseInt(customMinutes) || 0) + (parseInt(customSeconds) || 0)) <= 0}
+              className="w-full btn btn-primary text-sm py-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {showNotes ? 'Hide' : 'Add'} session notes
+              Set Timer
             </button>
-
-            {showNotes && (
-              <textarea
-                value={sessionNotes}
-                onChange={(e) => setSessionNotes(e.target.value)}
-                placeholder="How did this session go? Any insights or blockers?"
-                className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                rows={3}
-              />
-            )}
           </div>
-        )}
+        </div>
 
-        {/* Task Completion Option */}
-        {(timer.isCompleted || hasStarted || timer.isRunning || timer.isPaused) && sessionType === 'focus' && taskTitle && (
-          <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-            <label className="flex items-start gap-3 text-sm">
-              <input
-                type="checkbox"
-                checked={completeTaskWhenDone}
-                onChange={(e) => setCompleteTaskWhenDone(e.target.checked)}
-                className="mt-0.5 rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500 dark:bg-gray-800"
-              />
-              <span className="text-gray-700 dark:text-gray-300">
-                Mark "{taskTitle}" as completed when I finish this session
-              </span>
-            </label>
+        {/* Keyboard Shortcuts - Always Visible */}
+        <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 mb-4">
+          <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Keyboard Shortcuts</h4>
+          <div className="space-y-2 text-sm">
+            {shortcuts.map(shortcut => (
+              <div key={shortcut.key} className="flex items-center justify-between py-1 gap-4">
+                <span className="text-gray-600 dark:text-gray-400 flex-1 min-w-0 text-left">{shortcut.description}</span>
+                <kbd className="px-2 py-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-xs font-mono dark:text-gray-300 flex-shrink-0">
+                  {shortcut.key}
+                </kbd>
+              </div>
+            ))}
           </div>
-        )}
+        </div>
+
 
         {/* Session Completion Options */}
         {(timer.isCompleted || hasStarted || timer.isRunning || timer.isPaused) && (
