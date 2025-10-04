@@ -125,11 +125,32 @@ export function FocusMode({
   startTimer
 }: FocusModeProps) {
   const [showCancelConfirm, setShowCancelConfirm] = useState(false)
+  const [showCompletionOptions, setShowCompletionOptions] = useState(false)
+  const [newSubtaskTitle, setNewSubtaskTitle] = useState('')
 
   const handleTaskComplete = () => {
     if (task && onTaskComplete) {
       onTaskComplete(task.id)
+      onSessionComplete() // Also complete the session
     }
+  }
+
+  const handleCompleteSession = () => {
+    onSessionComplete()
+    setShowCompletionOptions(false)
+  }
+
+  const handleContinueSession = () => {
+    onSessionComplete(undefined, false, true)
+    setShowCompletionOptions(false)
+  }
+
+  const handleAddSubtaskAndComplete = () => {
+    if (newSubtaskTitle.trim()) {
+      onSessionComplete(undefined, false, false, newSubtaskTitle.trim())
+      setNewSubtaskTitle('')
+    }
+    setShowCompletionOptions(false)
   }
 
   const handleTaskNotesUpdate = (notes: string) => {
@@ -143,11 +164,13 @@ export function FocusMode({
     onExitFocus()
   }
 
-  // Handle keyboard shortcuts
+  // Handle keyboard shortcuts and click outside
   useEffect(() => {
     const handleKeyPress = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        if (showCancelConfirm) {
+        if (showCompletionOptions) {
+          setShowCompletionOptions(false)
+        } else if (showCancelConfirm) {
           setShowCancelConfirm(false)
         } else {
           setShowCancelConfirm(true)
@@ -158,9 +181,22 @@ export function FocusMode({
       }
     }
 
+    const handleClickOutside = (event: MouseEvent) => {
+      if (showCompletionOptions) {
+        const target = event.target as Element
+        if (!target.closest('.completion-dropdown-container')) {
+          setShowCompletionOptions(false)
+        }
+      }
+    }
+
     window.addEventListener('keydown', handleKeyPress)
-    return () => window.removeEventListener('keydown', handleKeyPress)
-  }, [showCancelConfirm, task, handleTaskComplete])
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      window.removeEventListener('keydown', handleKeyPress)
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [showCancelConfirm, showCompletionOptions, task, handleTaskComplete])
 
   return (
     <div className="fixed inset-0 bg-gray-50 dark:bg-gray-900 z-50 flex items-center justify-center p-4">
@@ -174,7 +210,7 @@ export function FocusMode({
             onSessionComplete={onSessionComplete}
             onSessionStart={onSessionStart}
             taskTitle={task?.title}
-            startTimer={startTimer}
+            startTimer={onSessionStart || startTimer}
           />
         </div>
 
@@ -271,14 +307,82 @@ export function FocusMode({
                         </span>
                       </div>
 
-                      <button
-                        onClick={handleTaskComplete}
-                        className="flex items-center gap-2 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-                        title="Mark task as complete"
-                      >
-                        <CheckCircle className="w-4 h-4" />
-                        Complete
-                      </button>
+                      <div className="relative completion-dropdown-container">
+                        <button
+                          onClick={() => setShowCompletionOptions(!showCompletionOptions)}
+                          className="flex items-center gap-2 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                          title="Complete task and session"
+                        >
+                          <CheckCircle className="w-4 h-4" />
+                          Complete
+                        </button>
+
+                        {/* Completion Options Dropdown */}
+                        {showCompletionOptions && (
+                          <div className="absolute right-0 top-full mt-2 w-64 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-4 z-10">
+                            <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">How do you want to finish?</h4>
+
+                            <div className="space-y-2">
+                              {/* Complete Task & Session */}
+                              <button
+                                onClick={handleTaskComplete}
+                                className="w-full text-left px-3 py-2 text-sm bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors"
+                              >
+                                ✓ Complete Task & Session
+                              </button>
+
+                              {/* Complete Session Only */}
+                              <button
+                                onClick={handleCompleteSession}
+                                className="w-full text-left px-3 py-2 text-sm bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
+                              >
+                                🎯 Complete Session Only
+                              </button>
+
+                              {/* Continue Session */}
+                              <button
+                                onClick={handleContinueSession}
+                                className="w-full text-left px-3 py-2 text-sm bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300 rounded-lg hover:bg-orange-100 dark:hover:bg-orange-900/30 transition-colors"
+                              >
+                                🔄 Continue with Another Pomodoro
+                              </button>
+
+                              {/* Add Subtask */}
+                              <div className="space-y-2 pt-2 border-t border-gray-200 dark:border-gray-600">
+                                <input
+                                  type="text"
+                                  value={newSubtaskTitle}
+                                  onChange={(e) => setNewSubtaskTitle(e.target.value)}
+                                  placeholder="Break this down into a subtask..."
+                                  className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && newSubtaskTitle.trim()) {
+                                      handleAddSubtaskAndComplete()
+                                    } else if (e.key === 'Escape') {
+                                      setShowCompletionOptions(false)
+                                    }
+                                  }}
+                                />
+                                <button
+                                  onClick={handleAddSubtaskAndComplete}
+                                  disabled={!newSubtaskTitle.trim()}
+                                  className="w-full text-left px-3 py-2 text-sm bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                  ➕ Add Subtask & Complete Session
+                                </button>
+                              </div>
+
+                              {/* Cancel */}
+                              <button
+                                onClick={() => setShowCompletionOptions(false)}
+                                className="w-full text-left px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     </div>
 
                     {task.notes && (

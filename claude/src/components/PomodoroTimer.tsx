@@ -43,6 +43,7 @@ export const PomodoroTimer = forwardRef<PomodoroTimerRef, PomodoroTimerProps>(({
   const [customMinutes, setCustomMinutes] = useState('')
   const [customSeconds, setCustomSeconds] = useState('')
   const [isCustomTimeFocused, setIsCustomTimeFocused] = useState(false)
+  const [showStopConfirmation, setShowStopConfirmation] = useState(false)
 
   const getSessionLength = () => {
     switch (sessionType) {
@@ -253,6 +254,7 @@ export const PomodoroTimer = forwardRef<PomodoroTimerRef, PomodoroTimerProps>(({
     setShowKeyboardShortcuts(true)
     setShowSnoozeOptions(false)
     setIsCustomTimeFocused(false)
+    setShowStopConfirmation(false)
   }
 
   const handleCustomTimeSubmit = () => {
@@ -365,7 +367,7 @@ export const PomodoroTimer = forwardRef<PomodoroTimerRef, PomodoroTimerProps>(({
 
             {(timer.isRunning || timer.isPaused) && (
               <button
-                onClick={timer.stop}
+                onClick={() => setShowStopConfirmation(true)}
                 className="btn btn-secondary flex items-center gap-2"
               >
                 <Square className="w-4 h-4" />
@@ -545,74 +547,37 @@ export const PomodoroTimer = forwardRef<PomodoroTimerRef, PomodoroTimerProps>(({
         </div>
 
 
-        {/* Session Completion Options */}
-        {(timer.isCompleted || hasStarted || timer.isRunning || timer.isPaused) && (
-          <div className="mt-4">
-            {!showCompletionOptions ? (
-              <button
-                onClick={() => setShowCompletionOptions(true)}
-                className="w-full btn-primary"
-              >
-                Complete Session
-              </button>
-            ) : (
-              <div className="space-y-3">
-                <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">How do you want to finish?</h4>
-
-                {/* Quick Complete */}
+        {/* Stop Confirmation Modal */}
+        {showStopConfirmation && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-sm mx-4 w-full">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3">
+                Stop Session?
+              </h3>
+              <p className="text-gray-600 dark:text-gray-400 mb-6">
+                Are you sure you want to stop this session? Your progress will be reset.
+              </p>
+              <div className="flex gap-3">
                 <button
-                  onClick={handleComplete}
-                  className="w-full btn-primary text-sm py-2"
+                  onClick={() => {
+                    timer.stop()
+                    setShowStopConfirmation(false)
+                  }}
+                  className="flex-1 btn btn-danger"
                 >
-                  ✓ Complete Session
+                  Stop Session
                 </button>
-
-                {/* Continue Session (for focus sessions) */}
-                {sessionType === 'focus' && (
-                  <button
-                    onClick={handleContinueSession}
-                    className="w-full btn btn-secondary text-sm py-2"
-                  >
-                    🔄 Continue with Another Pomodoro
-                  </button>
-                )}
-
-                {/* Add Subtask (if there's a task) */}
-                {sessionType === 'focus' && taskTitle && (
-                  <div className="space-y-2">
-                    <input
-                      type="text"
-                      value={newSubtaskTitle}
-                      onChange={(e) => setNewSubtaskTitle(e.target.value)}
-                      placeholder="Break this down into a subtask..."
-                      className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' && newSubtaskTitle.trim()) {
-                          handleAddSubtaskAndComplete()
-                        }
-                      }}
-                    />
-                    <button
-                      onClick={handleAddSubtaskAndComplete}
-                      disabled={!newSubtaskTitle.trim()}
-                      className="w-full btn btn-secondary text-sm py-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      ➕ Add Subtask & Complete
-                    </button>
-                  </div>
-                )}
-
-                {/* Cancel */}
                 <button
-                  onClick={() => setShowCompletionOptions(false)}
-                  className="w-full btn btn-outline text-sm py-2"
+                  onClick={() => setShowStopConfirmation(false)}
+                  className="flex-1 btn btn-secondary"
                 >
-                  Cancel
+                  Continue
                 </button>
               </div>
-            )}
+            </div>
           </div>
         )}
+
       </div>
     </div>
   )

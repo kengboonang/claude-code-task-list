@@ -36,6 +36,7 @@ function App() {
   const [sessionType, setSessionType] = useState<SessionType>('focus')
   const [completedPomodoros, setCompletedPomodoros] = useState(0)
   const [showAutoResumeCountdown, setShowAutoResumeCountdown] = useState(false)
+  const [pendingFocusTaskId, setPendingFocusTaskId] = useState<string | null>(null)
   const [nextSession, setNextSession] = useState<{
     type: SessionType
     taskId?: string
@@ -46,6 +47,7 @@ function App() {
   const mit = getMIT()
   const completedMIT = getCompletedMIT()
   const currentTask = currentTaskId ? tasks.find(t => t.id === currentTaskId) || null : null
+  const pendingTask = pendingFocusTaskId ? tasks.find(t => t.id === pendingFocusTaskId) || null : null
 
   useEffect(() => {
     // Request notification permission on app load
@@ -55,13 +57,22 @@ function App() {
   }, [])
 
   const handleStartFocus = (taskId: string) => {
-    startSession('focus', taskId)
+    // Enter focus mode but don't start the session yet
+    setPendingFocusTaskId(taskId)
     setSessionType('focus')
   }
 
   const handleStartQuickFocus = () => {
-    startSession('focus')
+    // Enter focus mode but don't start the session yet
+    setPendingFocusTaskId(null)
     setSessionType('focus')
+  }
+
+  const handleSessionStart = () => {
+    // Actually start the session when timer starts
+    const session = startSession(sessionType, pendingFocusTaskId || undefined)
+    startTimer()
+    return session
   }
 
   const handleSessionComplete = (notes?: string, completeTask?: boolean, continueSession?: boolean, newSubtaskTitle?: string) => {
@@ -129,6 +140,7 @@ function App() {
     if (currentSession && !currentSession.completed) {
       completeSession('Session interrupted')
     }
+    setPendingFocusTaskId(null)
     setSessionType('focus')
   }
 
@@ -161,13 +173,14 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      {isInFocusMode || currentSession ? (
+      {isInFocusMode || currentSession || pendingFocusTaskId !== null ? (
         <FocusMode
-          task={currentTask}
+          task={pendingTask || currentTask}
           sessionType={sessionType}
           userPrefs={userPrefs}
           onExitFocus={handleExitFocus}
           onSessionComplete={handleSessionComplete}
+          onSessionStart={handleSessionStart}
           onTaskComplete={handleTaskComplete}
           onAddSubtask={addSubtask}
           onUpdateSubtask={updateSubtask}
