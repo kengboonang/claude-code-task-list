@@ -1,8 +1,99 @@
-import { useState, useEffect } from 'react'
-import { X, CheckCircle, MoreHorizontal, StopCircle } from 'lucide-react'
+import { CheckCircle, X } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import type { SessionType, Task, UserPrefs } from '../types'
 import { PomodoroTimer } from './PomodoroTimer'
 import { SubtaskList } from './SubtaskList'
-import type { Task, UserPrefs, SessionType } from '../types'
+
+// Task Notes Component
+interface TaskNotesComponentProps {
+  task: Task
+  onTaskNotesUpdate: (notes: string) => void
+}
+
+function TaskNotesComponent({ task, onTaskNotesUpdate }: TaskNotesComponentProps) {
+  const [editableNotes, setEditableNotes] = useState(task.notes || '')
+  const [isEditingNotes, setIsEditingNotes] = useState(false)
+
+  // Update editableNotes when task.notes changes
+  useEffect(() => {
+    setEditableNotes(task.notes || '')
+  }, [task.notes])
+
+  return (
+    <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+      <div className="flex items-center justify-between mb-2">
+        <h4 className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Task Notes</h4>
+        <button
+          onClick={() => {
+            if (isEditingNotes) {
+              onTaskNotesUpdate(editableNotes)
+              setIsEditingNotes(false)
+            } else {
+              setIsEditingNotes(true)
+            }
+          }}
+          className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
+        >
+          {isEditingNotes ? 'Save' : 'Edit'}
+        </button>
+      </div>
+
+      {isEditingNotes ? (
+        <textarea
+          value={editableNotes}
+          onChange={(e) => setEditableNotes(e.target.value)}
+          placeholder="Add notes about this task..."
+          className="w-full px-2 py-2 text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 rounded focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-transparent resize-none"
+          rows={3}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+              onTaskNotesUpdate(editableNotes)
+              setIsEditingNotes(false)
+            } else if (e.key === 'Escape') {
+              setEditableNotes(task.notes || '')
+              setIsEditingNotes(false)
+            }
+          }}
+          autoFocus
+        />
+      ) : (
+        <div
+          className="text-sm text-gray-600 dark:text-gray-300 min-h-[3rem] cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 rounded p-1 transition-colors"
+          onClick={() => setIsEditingNotes(true)}
+        >
+          {editableNotes || (
+            <span className="text-gray-400 dark:text-gray-500 italic">
+              Click to add notes about this task...
+            </span>
+          )}
+        </div>
+      )}
+
+      {isEditingNotes && (
+        <div className="flex justify-end gap-2 mt-2">
+          <button
+            onClick={() => {
+              setEditableNotes(task.notes || '')
+              setIsEditingNotes(false)
+            }}
+            className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={() => {
+              onTaskNotesUpdate(editableNotes)
+              setIsEditingNotes(false)
+            }}
+            className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium"
+          >
+            Save (Ctrl+Enter)
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
 
 interface FocusModeProps {
   task: Task | null
@@ -15,25 +106,56 @@ interface FocusModeProps {
   onAddSubtask?: (taskId: string, title: string) => void
   onUpdateSubtask?: (taskId: string, subtaskId: string, updates: { title?: string, completed?: boolean }) => void
   onDeleteSubtask?: (taskId: string, subtaskId: string) => void
+  onUpdateTask?: (taskId: string, updates: { notes?: string }) => void
+  startTimer: () => void
 }
 
-export function FocusMode({ 
-  task, 
+export function FocusMode({
+  task,
   sessionType,
   userPrefs,
-  onExitFocus, 
+  onExitFocus,
   onSessionComplete,
   onSessionStart,
   onTaskComplete,
   onAddSubtask,
   onUpdateSubtask,
-  onDeleteSubtask
+  onDeleteSubtask,
+  onUpdateTask,
+  startTimer
 }: FocusModeProps) {
   const [showCancelConfirm, setShowCancelConfirm] = useState(false)
+  const [showCompletionOptions, setShowCompletionOptions] = useState(false)
+  const [newSubtaskTitle, setNewSubtaskTitle] = useState('')
 
   const handleTaskComplete = () => {
     if (task && onTaskComplete) {
       onTaskComplete(task.id)
+      onSessionComplete() // Also complete the session
+    }
+  }
+
+  const handleCompleteSession = () => {
+    onSessionComplete()
+    setShowCompletionOptions(false)
+  }
+
+  const handleContinueSession = () => {
+    onSessionComplete(undefined, false, true)
+    setShowCompletionOptions(false)
+  }
+
+  const handleAddSubtaskAndComplete = () => {
+    if (newSubtaskTitle.trim()) {
+      onSessionComplete(undefined, false, false, newSubtaskTitle.trim())
+      setNewSubtaskTitle('')
+    }
+    setShowCompletionOptions(false)
+  }
+
+  const handleTaskNotesUpdate = (notes: string) => {
+    if (task && onUpdateTask) {
+      onUpdateTask(task.id, { notes })
     }
   }
 
@@ -42,86 +164,227 @@ export function FocusMode({
     onExitFocus()
   }
 
-  // Handle keyboard shortcuts
+  // Handle keyboard shortcuts and click outside
   useEffect(() => {
     const handleKeyPress = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        if (showCancelConfirm) {
+        if (showCompletionOptions) {
+          setShowCompletionOptions(false)
+        } else if (showCancelConfirm) {
           setShowCancelConfirm(false)
         } else {
           setShowCancelConfirm(true)
+        }
+      } else if (event.key === 'Enter' && (event.ctrlKey || event.metaKey) && task) {
+        event.preventDefault()
+        handleTaskComplete()
+      }
+    }
+
+    const handleClickOutside = (event: MouseEvent) => {
+      if (showCompletionOptions) {
+        const target = event.target as Element
+        if (!target.closest('.completion-dropdown-container')) {
+          setShowCompletionOptions(false)
         }
       }
     }
 
     window.addEventListener('keydown', handleKeyPress)
-    return () => window.removeEventListener('keydown', handleKeyPress)
-  }, [showCancelConfirm])
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      window.removeEventListener('keydown', handleKeyPress)
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [showCancelConfirm, showCompletionOptions, task, handleTaskComplete])
 
   return (
     <div className="fixed inset-0 bg-gray-50 dark:bg-gray-900 z-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-2xl">
-        {/* Header */}
-        <div className="flex justify-between items-start mb-8">
-          <div className="text-gray-900 dark:text-gray-100 flex-1">
-            <h1 className="text-2xl font-bold mb-3">Focus Mode</h1>
-            {sessionType === 'focus' && (
-              <div className="flex items-center justify-between">
-                <p className="text-gray-600 dark:text-gray-400">Stay focused on your current task</p>
-                <button
-                  onClick={() => setShowCancelConfirm(true)}
-                  className="flex items-center gap-2 px-3 py-1 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors ml-4"
-                  title="Cancel session and return to main page"
-                >
-                  <StopCircle className="w-3 h-3" />
-                  Cancel Session
-                </button>
-              </div>
-            )}
-            {sessionType !== 'focus' && (
-              <button
-                onClick={() => setShowCancelConfirm(true)}
-                className="flex items-center gap-2 px-3 py-1 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors mt-2"
-                title="Cancel session and return to main page"
-              >
-                <StopCircle className="w-3 h-3" />
-                Cancel Session
-              </button>
-            )}
-          </div>
-          
-          <button
-            onClick={onExitFocus}
-            className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex-shrink-0"
-            title="Exit focus mode"
-          >
-            <X className="w-6 h-6" />
-          </button>
+      <div className="w-full max-w-5xl flex gap-8">
+        {/* Left Panel - Focus Time */}
+        <div className="w-1/2">
+          {/* Timer */}
+          <PomodoroTimer
+            sessionType={sessionType}
+            userPrefs={userPrefs}
+            onSessionComplete={onSessionComplete}
+            onSessionStart={onSessionStart}
+            taskTitle={task?.title}
+            startTimer={onSessionStart || startTimer}
+          />
         </div>
 
-        {/* Current Task Info */}
-        {sessionType === 'focus' && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 mb-8 shadow-lg">
-            <div className="flex items-start justify-between">
+        {/* Right Panel - Progress Card and Title */}
+        <div className="w-1/2">
+          {/* Header */}
+          <div className="flex justify-between items-start mb-8">
+            <div className="text-gray-900 dark:text-gray-100 flex-1">
+              <h1 className="text-2xl font-bold mb-3">Focus Mode</h1>
+              {sessionType === 'focus' && (
+                <div className="flex items-center justify-between">
+                  <p className="text-gray-600 dark:text-gray-400">Stay focused on your current task</p>
+                  <div className="relative group ml-4">
+                    <button
+                      className="flex items-center gap-2 px-3 py-1 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                      title="Focus Tips"
+                    >
+                      💡 Tips
+                    </button>
+                    <div className="absolute right-0 top-full mt-2 w-80 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-4 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
+                      <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-2">Focus Tips</h4>
+                      <ul className="text-sm space-y-1 text-gray-600 dark:text-gray-400">
+                        <li>• Close unnecessary browser tabs and applications</li>
+                        <li>• Put your phone in another room or use Do Not Disturb</li>
+                        <li>• If distracted, jot down the thought and return to your task</li>
+                        <li>• Stay hydrated and maintain good posture</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              )}
+              {sessionType !== 'focus' && (
+                <div className="relative group mt-2">
+                  <button
+                    className="flex items-center gap-2 px-3 py-1 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                    title="Break Ideas"
+                  >
+                    💡 Tips
+                  </button>
+                  <div className="absolute right-0 top-full mt-2 w-80 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-4 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
+                    <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-2">Break Ideas</h4>
+                    <ul className="text-sm space-y-1 text-gray-600 dark:text-gray-400">
+                      {sessionType === 'short_break' ? (
+                        <>
+                          <li>• Stand up and stretch</li>
+                          <li>• Look out the window or at something far away</li>
+                          <li>• Do some deep breathing exercises</li>
+                          <li>• Grab a glass of water</li>
+                        </>
+                      ) : (
+                        <>
+                          <li>• Take a walk outside</li>
+                          <li>• Have a healthy snack</li>
+                          <li>• Do some light exercise or yoga</li>
+                          <li>• Chat with a friend or colleague</li>
+                          <li>• Listen to music or a podcast</li>
+                        </>
+                      )}
+                    </ul>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <button
+              onClick={onExitFocus}
+              className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex-shrink-0"
+              title="Exit focus mode"
+            >
+              <X className="w-6 h-6" />
+            </button>
+          </div>
+
+          {/* Current Task Info or Break Message */}
+          {sessionType === 'focus' ? (
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-lg">
               <div className="flex-1">
                 {task ? (
                   <>
-                    <div className="flex items-center gap-2 mb-2">
-                      <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">{task.title}</h2>
-                      {task.is_mit && (
-                        <span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs font-medium rounded-full">
-                          MIT
+                    <div className="flex items-center justify-between gap-2 mb-2">
+                      <div className="flex items-center gap-2">
+                        <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">{task.title}</h2>
+                        {task.is_mit && (
+                          <span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs font-medium rounded-full">
+                            MIT
+                          </span>
+                        )}
+                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                          task.priority === 'P1' ? 'bg-red-100 text-red-800' :
+                          task.priority === 'P2' ? 'bg-yellow-100 text-yellow-800' :
+                          'bg-green-100 text-green-800'
+                        }`}>
+                          {task.priority}
                         </span>
-                      )}
-                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                        task.priority === 'P1' ? 'bg-red-100 text-red-800' :
-                        task.priority === 'P2' ? 'bg-yellow-100 text-yellow-800' :
-                        'bg-green-100 text-green-800'
-                      }`}>
-                        {task.priority}
-                      </span>
+                      </div>
+
+                      <div className="relative completion-dropdown-container">
+                        <button
+                          onClick={() => setShowCompletionOptions(!showCompletionOptions)}
+                          className="flex items-center gap-2 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                          title="Complete task and session"
+                        >
+                          <CheckCircle className="w-4 h-4" />
+                          Complete
+                        </button>
+
+                        {/* Completion Options Dropdown */}
+                        {showCompletionOptions && (
+                          <div className="absolute right-0 top-full mt-2 w-64 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-4 z-10">
+                            <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">How do you want to finish?</h4>
+
+                            <div className="space-y-2">
+                              {/* Complete Task & Session */}
+                              <button
+                                onClick={handleTaskComplete}
+                                className="w-full text-left px-3 py-2 text-sm bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors"
+                              >
+                                ✓ Complete Task & Session
+                              </button>
+
+                              {/* Complete Session Only */}
+                              <button
+                                onClick={handleCompleteSession}
+                                className="w-full text-left px-3 py-2 text-sm bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
+                              >
+                                🎯 Complete Session Only
+                              </button>
+
+                              {/* Continue Session */}
+                              <button
+                                onClick={handleContinueSession}
+                                className="w-full text-left px-3 py-2 text-sm bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300 rounded-lg hover:bg-orange-100 dark:hover:bg-orange-900/30 transition-colors"
+                              >
+                                🔄 Continue with Another Pomodoro
+                              </button>
+
+                              {/* Add Subtask */}
+                              <div className="space-y-2 pt-2 border-t border-gray-200 dark:border-gray-600">
+                                <input
+                                  type="text"
+                                  value={newSubtaskTitle}
+                                  onChange={(e) => setNewSubtaskTitle(e.target.value)}
+                                  placeholder="Break this down into a subtask..."
+                                  className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && newSubtaskTitle.trim()) {
+                                      handleAddSubtaskAndComplete()
+                                    } else if (e.key === 'Escape') {
+                                      setShowCompletionOptions(false)
+                                    }
+                                  }}
+                                />
+                                <button
+                                  onClick={handleAddSubtaskAndComplete}
+                                  disabled={!newSubtaskTitle.trim()}
+                                  className="w-full text-left px-3 py-2 text-sm bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                  ➕ Add Subtask & Complete Session
+                                </button>
+                              </div>
+
+                              {/* Cancel */}
+                              <button
+                                onClick={() => setShowCompletionOptions(false)}
+                                className="w-full text-left px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    
+
                     {task.notes && (
                       <p className="text-gray-600 dark:text-gray-400 mb-3">{task.notes}</p>
                     )}
@@ -157,6 +420,12 @@ export function FocusMode({
                         />
                       </div>
                     )}
+
+                    {/* Task Notes */}
+                    <TaskNotesComponent
+                      task={task}
+                      onTaskNotesUpdate={handleTaskNotesUpdate}
+                    />
                   </>
                 ) : (
                   <>
@@ -166,123 +435,57 @@ export function FocusMode({
                         General Work
                       </span>
                     </div>
-                    
+
                     <p className="text-gray-600 dark:text-gray-400 mb-3">
                       Focus on whatever needs your attention right now. Use this time for planning, organizing, or any task that comes to mind.
                     </p>
                   </>
                 )}
               </div>
-
-              {task && (
-                <div className="flex gap-2 ml-4">
-                  <button
-                    onClick={handleTaskComplete}
-                    className="flex items-center gap-2 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-                    title="Mark task as complete"
-                  >
-                    <CheckCircle className="w-4 h-4" />
-                    Complete
-                  </button>
-                  
-                  <button className="p-2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-                    <MoreHorizontal className="w-4 h-4" />
-                  </button>
-                </div>
-              )}
             </div>
-          </div>
-        )}
-
-        {/* Break Message */}
-        {sessionType !== 'focus' && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 mb-8 shadow-lg text-center">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
-              {sessionType === 'short_break' ? 'Short Break Time' : 'Long Break Time'}
-            </h2>
-            <p className="text-gray-600 dark:text-gray-400">
-              {sessionType === 'short_break' 
-                ? 'Take a few minutes to rest and recharge. Stay nearby for the next focus session.'
-                : 'Time for a longer break! Step away from your workspace and do something refreshing.'
-              }
-            </p>
-          </div>
-        )}
-
-        {/* Timer */}
-        <PomodoroTimer
-          sessionType={sessionType}
-          userPrefs={userPrefs}
-          onSessionComplete={onSessionComplete}
-          onSessionStart={onSessionStart}
-          taskTitle={task?.title}
-        />
-
-        {/* Focus Tips */}
-        {sessionType === 'focus' && (
-          <div className="mt-8 card">
-            <h3 className="font-medium text-gray-900 dark:text-gray-100 mb-2">Focus Tips</h3>
-            <ul className="text-sm space-y-1 text-gray-600 dark:text-gray-400">
-              <li>• Close unnecessary browser tabs and applications</li>
-              <li>• Put your phone in another room or use Do Not Disturb</li>
-              <li>• If distracted, jot down the thought and return to your task</li>
-              <li>• Stay hydrated and maintain good posture</li>
-            </ul>
-          </div>
-        )}
-
-        {/* Break Tips */}
-        {sessionType !== 'focus' && (
-          <div className="mt-8 card">
-            <h3 className="font-medium text-gray-900 dark:text-gray-100 mb-2">Break Ideas</h3>
-            <ul className="text-sm space-y-1 text-gray-600 dark:text-gray-400">
-              {sessionType === 'short_break' ? (
-                <>
-                  <li>• Stand up and stretch</li>
-                  <li>• Look out the window or at something far away</li>
-                  <li>• Do some deep breathing exercises</li>
-                  <li>• Grab a glass of water</li>
-                </>
-              ) : (
-                <>
-                  <li>• Take a walk outside</li>
-                  <li>• Have a healthy snack</li>
-                  <li>• Do some light exercise or yoga</li>
-                  <li>• Chat with a friend or colleague</li>
-                  <li>• Listen to music or a podcast</li>
-                </>
-              )}
-            </ul>
-          </div>
-        )}
-
-        {/* Cancel Session Confirmation Dialog */}
-        {showCancelConfirm && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 z-60 flex items-center justify-center p-4">
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full shadow-xl">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3">Cancel Session?</h3>
-              <p className="text-gray-600 dark:text-gray-400 mb-6">
-                Are you sure you want to cancel this session? Your progress will be saved, but the session will be marked as interrupted.
+          ) : (
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-lg text-center">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                {sessionType === 'short_break' ? 'Short Break Time' : 'Long Break Time'}
+              </h2>
+              <p className="text-gray-600 dark:text-gray-400">
+                {sessionType === 'short_break'
+                  ? 'Take a few minutes to rest and recharge. Stay nearby for the next focus session.'
+                  : 'Time for a longer break! Step away from your workspace and do something refreshing.'}
               </p>
-              
-              <div className="flex gap-3 justify-end">
-                <button
-                  onClick={() => setShowCancelConfirm(false)}
-                  className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-                >
-                  Continue Session
-                </button>
-                <button
-                  onClick={handleCancelSession}
-                  className="px-4 py-2 bg-red-600 text-white hover:bg-red-700 rounded-lg transition-colors"
-                >
-                  Cancel Session
-                </button>
-              </div>
+            </div>
+          )}
+
+
+        </div>
+      </div>
+
+      {/* Cancel Session Confirmation Dialog */}
+      {showCancelConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-60 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full shadow-xl">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3">Cancel Session?</h3>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">
+              Are you sure you want to cancel this session? Your progress will be saved, but the session will be marked as interrupted.
+            </p>
+
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setShowCancelConfirm(false)}
+                className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+              >
+                Continue Session
+              </button>
+              <button
+                onClick={handleCancelSession}
+                className="px-4 py-2 bg-red-600 text-white hover:bg-red-700 rounded-lg transition-colors"
+              >
+                Cancel Session
+              </button>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   )
 }

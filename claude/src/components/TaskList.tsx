@@ -133,7 +133,7 @@ export function TaskList({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 pr-4">
       <h2 className="text-xl font-semibold text-gray-900">{title}</h2>
 
       {showQuickAdd && (
@@ -145,8 +145,7 @@ export function TaskList({
 
       <div className="space-y-3">
         {tasks.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">
-            <p>No tasks yet. Add one above to get started!</p>
+          <div>
           </div>
         ) : (
           tasks.map(task => (

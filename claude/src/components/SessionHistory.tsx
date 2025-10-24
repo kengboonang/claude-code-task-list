@@ -1,5 +1,4 @@
-import { useState } from 'react'
-import { Clock, MessageSquare, Play, Coffee, Pause, ChevronDown, ChevronUp } from 'lucide-react'
+import { Clock, Coffee, MessageSquare, Pause, Play } from 'lucide-react'
 import type { Session, Task } from '../types'
 
 interface SessionHistoryProps {
@@ -8,12 +7,7 @@ interface SessionHistoryProps {
 }
 
 export function SessionHistory({ sessions, tasks }: SessionHistoryProps) {
-  const [isExpanded, setIsExpanded] = useState(false)
-
-  const todaysSessions = sessions.filter(session => {
-    const today = new Date().toDateString()
-    return session.start_at.toDateString() === today && session.completed
-  }).sort((a, b) => b.start_at.getTime() - a.start_at.getTime())
+  const sortedSessions = sessions.sort((a, b) => b.start_at.getTime() - a.start_at.getTime())
 
   const getTaskTitle = (taskId?: string) => {
     if (!taskId) return null
@@ -22,10 +16,10 @@ export function SessionHistory({ sessions, tasks }: SessionHistoryProps) {
   }
 
   const formatTime = (date: Date) => {
-    return date.toLocaleTimeString('en-US', { 
-      hour: '2-digit', 
+    return date.toLocaleTimeString('en-US', {
+      hour: '2-digit',
       minute: '2-digit',
-      hour12: true 
+      hour12: true
     })
   }
 
@@ -51,34 +45,15 @@ export function SessionHistory({ sessions, tasks }: SessionHistoryProps) {
     }
   }
 
-  if (todaysSessions.length === 0) {
-    return null
+  if (sortedSessions.length === 0) {
+    return <div className="text-gray-500">No sessions found for this date.</div>
   }
 
   return (
-    <div className="card">
-      <button
-        onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full flex items-center justify-between p-0 bg-transparent border-none text-left hover:text-primary-600 transition-colors"
-      >
-        <div className="flex items-center gap-3">
-          <Clock className="w-5 h-5 text-gray-500" />
-          <h3 className="text-lg font-semibold text-gray-900">
-            Today's Sessions ({todaysSessions.length})
-          </h3>
-        </div>
-        {isExpanded ? (
-          <ChevronUp className="w-5 h-5 text-gray-400" />
-        ) : (
-          <ChevronDown className="w-5 h-5 text-gray-400" />
-        )}
-      </button>
-
-      {isExpanded && (
-        <div className="mt-4 space-y-3">
-          {todaysSessions.map((session) => {
+    <div className="space-y-3">
+      {sortedSessions.map((session) => {
             const taskTitle = getTaskTitle(session.task_id)
-            
+
             return (
               <div
                 key={session.id}
@@ -128,21 +103,17 @@ export function SessionHistory({ sessions, tasks }: SessionHistoryProps) {
               </div>
             )
           })}
-          
-          {todaysSessions.length > 3 && (
-            <div className="text-center pt-2">
-              <p className="text-sm text-gray-500">
-                Total focus time today: {' '}
-                <span className="font-medium">
-                  {Math.round(todaysSessions
-                    .filter(s => s.type === 'focus')
-                    .reduce((total, s) => total + s.duration, 0) * 10) / 10} minutes
-                </span>
-              </p>
-            </div>
-          )}
-        </div>
-      )}
+
+      <div className="text-center pt-2">
+        <p className="text-sm text-gray-500">
+          Total focus time: {' '}
+          <span className="font-medium">
+            {Math.round(sortedSessions
+              .filter(s => s.type === 'focus')
+              .reduce((total, s) => total + s.duration, 0) * 10) / 10} minutes
+          </span>
+        </p>
+      </div>
     </div>
   )
 }

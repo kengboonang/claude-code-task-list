@@ -3,7 +3,6 @@ import { useEffect, useRef, useState } from 'react'
 import type { Session, Task, TaskPriority } from '../types'
 import { DailyReview } from './DailyReview'
 import DailyReviewPanel from './DailyReviewPanel'
-import { SessionHistory } from './SessionHistory'
 import { TaskList } from './TaskList'
 import { ThemeToggle } from './ThemeToggle'
 
@@ -68,7 +67,14 @@ export function TodayView({
       return !mit && activeTodayTasks.length > 0
     }
   })
-  const [priorityFilter, setPriorityFilter] = useState<'All' | TaskPriority>('All')
+  const [priorityFilter, setPriorityFilter] = useState<'All' | TaskPriority>(() => {
+    try {
+      const saved = localStorage.getItem('taskPriorityFilter')
+      return (saved as 'All' | TaskPriority) || 'All'
+    } catch {
+      return 'All'
+    }
+  })
   const [showResetMenu, setShowResetMenu] = useState(false)
   const [showDailyReview, setShowDailyReview] = useState(false)
   const resetMenuRef = useRef<HTMLDivElement>(null)
@@ -101,6 +107,15 @@ export function TodayView({
     }
   }, [showResetMenu])
 
+  // Save priority filter to localStorage when it changes
+  useEffect(() => {
+    try {
+      localStorage.setItem('taskPriorityFilter', priorityFilter)
+    } catch {
+      // Silently fail if localStorage is not available
+    }
+  }, [priorityFilter])
+
   const filteredTasks = priorityFilter === 'All'
     ? activeTodayTasks
     : activeTodayTasks.filter(task => task.priority === priorityFilter)
@@ -131,12 +146,26 @@ export function TodayView({
     }
   }
 
+  const handleCreateTask = (task: Omit<Task, 'id' | 'created_at' | 'updated_at'>) => {
+    const newTask = {
+      ...task,
+      priority: priorityFilter === 'All' ? 'P1' : priorityFilter,
+    }
+    onCreateTask(newTask)
+  }
+
   return (
     <div className="max-w-7xl mx-auto p-6 lg:h-[calc(100vh-3rem)] lg:flex lg:flex-col">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:flex-1 lg:min-h-0">
         {/* Left Sidebar: Calendar + Daily Review */}
         <aside className="lg:col-span-4 lg:h-full lg:min-h-0">
-          <DailyReviewPanel className="h-full" tasks={allTasks} sessions={sessions} onUpdateTask={onUpdateTask} onDeleteTask={onDeleteTask} />
+          <DailyReviewPanel
+            className="h-full"
+            tasks={allTasks}
+            sessions={sessions}
+            onUpdateTask={onUpdateTask}
+            onDeleteTask={onDeleteTask}
+          />
         </aside>
 
         {/* Main Content */}
@@ -353,7 +382,7 @@ export function TodayView({
 
             <TaskList
               tasks={filteredTasks}
-              onCreateTask={onCreateTask}
+              onCreateTask={handleCreateTask}
               onUpdateTask={onUpdateTask}
               onDeleteTask={onDeleteTask}
               onSetMIT={onSetMIT}
@@ -378,10 +407,6 @@ export function TodayView({
               </p>
             </div>
           )}
-
-          {/* Session History */}
-          <SessionHistory sessions={sessions} tasks={allTasks} />
-
 
           {/* Daily Review Modal */}
           {showDailyReview && (
